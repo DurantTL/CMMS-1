@@ -96,6 +96,12 @@ enum NominationStatus {
   WINNER
 }
 
+enum TltApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                    String               @id @default(cuid())
   email                 String               @unique
@@ -126,6 +132,7 @@ model Club {
   monthlyReports  MonthlyReport[]
   yearEndReports  YearEndReport[]
   nominations     Nomination[]
+  tltApplications TltApplication[]
 }
 
 model ClubMembership {
@@ -196,9 +203,32 @@ model RosterMember {
   classEnrollments       ClassEnrollment[]
   completedRequirements  MemberRequirement[]
   nominations            Nomination[]
+  tltApplication         TltApplication?
 
   @@index([clubRosterYearId, isActive])
   @@index([lastName, firstName])
+}
+
+model TltApplication {
+  id               String               @id @default(cuid())
+  rosterMemberId   String               @unique
+  clubId           String
+  grade            Int
+  citizenship      String
+  isBaptized       Boolean
+  tltYearWorkingOn Int
+  schoolName       String
+  schoolAddress    String
+  classesCompleted Json
+  tShirtSize       String
+  poloSize         String
+  status           TltApplicationStatus @default(PENDING)
+  createdAt        DateTime             @default(now())
+
+  rosterMember RosterMember @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+  club         Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, status])
 }
 
 model Nomination {
