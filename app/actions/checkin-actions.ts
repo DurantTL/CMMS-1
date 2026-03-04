@@ -26,6 +26,13 @@ function requireTrimmedString(value: FormDataEntryValue | null, label: string) {
   return trimmed;
 }
 
+/** Typed shape for the optional object-form of the JSONB `options` column used as field metadata. */
+type FieldOptionsMetadata = {
+  attendeeSpecific?: boolean;
+  scope?: string;
+  [key: string]: unknown;
+};
+
 function isAttendeeSpecificField(field: {
   key: string;
   description: string | null;
@@ -40,12 +47,12 @@ function isAttendeeSpecificField(field: {
   }
 
   if (field.options && typeof field.options === "object" && !Array.isArray(field.options)) {
-    const metadata = field.options as Record<string, unknown>;
+    const metadata = field.options as FieldOptionsMetadata;
     return metadata.attendeeSpecific === true || metadata.scope === "ATTENDEE";
   }
 
   if (Array.isArray(field.options)) {
-    return field.options.includes("__ATTENDEE_LIST__");
+    return (field.options as unknown[]).includes("__ATTENDEE_LIST__");
   }
 
   return false;

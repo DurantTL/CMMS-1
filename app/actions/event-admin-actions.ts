@@ -7,6 +7,9 @@ import { redirect } from "next/navigation";
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
 
+/** Typed representation of options stored in the JSONB `options` column for MULTI_SELECT fields. */
+type FormFieldSelectOptions = string[];
+
 type IncomingDynamicField = {
   id?: string;
   parentFieldId?: string | null;
@@ -66,7 +69,7 @@ function parseRequiredFloat(value: FormDataEntryValue | null, fieldLabel: string
   return parsed;
 }
 
-function parseMultiSelectOptions(raw: string, fieldKey: string) {
+function parseMultiSelectOptions(raw: string, fieldKey: string): FormFieldSelectOptions {
   try {
     const parsed = JSON.parse(raw);
 
@@ -74,7 +77,7 @@ function parseMultiSelectOptions(raw: string, fieldKey: string) {
       throw new Error();
     }
 
-    const normalized = parsed.map((option) => {
+    const normalized: FormFieldSelectOptions = parsed.map((option) => {
       if (typeof option !== "string" || option.trim().length === 0) {
         throw new Error();
       }
