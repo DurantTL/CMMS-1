@@ -3,7 +3,7 @@
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { type MemberRole } from "@prisma/client";
 
-import { enrollAttendeeInClass } from "../../../../../actions/enrollment-actions";
+import { enrollAttendeeInClass, removeAttendeeFromClass } from "../../../../../actions/enrollment-actions";
 import {
   evaluateClassRequirements,
   requirementToBadgeLabel,
@@ -45,6 +45,18 @@ type OptimisticState = {
   attendeeEnrollmentsById: Record<string, string[]>;
 };
 
+type OptimisticAction =
+  | {
+      kind: "enroll";
+      attendeeId: string;
+      offeringId: string;
+    }
+  | {
+      kind: "remove";
+      attendeeId: string;
+      offeringId: string;
+    };
+
 type ClassAssignmentBoardProps = {
   eventId: string;
   attendees: Attendee[];
@@ -83,22 +95,48 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
 
   const [optimisticState, addOptimisticEnrollment] = useOptimistic(
     baseOptimisticState,
-    (currentState, optimisticEnrollment: { attendeeId: string; offeringId: string }) => {
-      const attendeeEnrollmentSet = new Set(currentState.attendeeEnrollmentsById[optimisticEnrollment.attendeeId] ?? []);
-      if (attendeeEnrollmentSet.has(optimisticEnrollment.offeringId)) {
+    (currentState, optimisticAction: OptimisticAction) => {
+      const attendeeEnrollmentSet = new Set(
+        currentState.attendeeEnrollmentsById[optimisticAction.attendeeId] ?? [],
+      );
+
+      if (optimisticAction.kind === "enroll") {
+        if (attendeeEnrollmentSet.has(optimisticAction.offeringId)) {
+          return currentState;
+        }
+
+        attendeeEnrollmentSet.add(optimisticAction.offeringId);
+
+        return {
+          enrolledCountsByOfferingId: {
+            ...currentState.enrolledCountsByOfferingId,
+            [optimisticAction.offeringId]:
+              (currentState.enrolledCountsByOfferingId[optimisticAction.offeringId] ?? 0) + 1,
+          },
+          attendeeEnrollmentsById: {
+            ...currentState.attendeeEnrollmentsById,
+            [optimisticAction.attendeeId]: Array.from(attendeeEnrollmentSet),
+          },
+        };
+      }
+
+      if (!attendeeEnrollmentSet.has(optimisticAction.offeringId)) {
         return currentState;
       }
 
-      attendeeEnrollmentSet.add(optimisticEnrollment.offeringId);
+      attendeeEnrollmentSet.delete(optimisticAction.offeringId);
 
       return {
         enrolledCountsByOfferingId: {
           ...currentState.enrolledCountsByOfferingId,
-          [optimisticEnrollment.offeringId]: (currentState.enrolledCountsByOfferingId[optimisticEnrollment.offeringId] ?? 0) + 1,
+          [optimisticAction.offeringId]: Math.max(
+            (currentState.enrolledCountsByOfferingId[optimisticAction.offeringId] ?? 1) - 1,
+            0,
+          ),
         },
         attendeeEnrollmentsById: {
           ...currentState.attendeeEnrollmentsById,
-          [optimisticEnrollment.attendeeId]: Array.from(attendeeEnrollmentSet),
+          [optimisticAction.attendeeId]: Array.from(attendeeEnrollmentSet),
         },
       };
     },
@@ -230,6 +268,7 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
 
                           setErrorMessage(null);
                           addOptimisticEnrollment({
+                            kind: "enroll",
                             attendeeId: selectedAttendee.id,
                             offeringId: offering.id,
                           });
@@ -251,6 +290,42 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
                       >
                         {alreadyEnrolled ? "Enrolled" : "Enroll"}
                       </button>
+
+                      {alreadyEnrolled ? (
+                        <button
+                          type="button"
+                          disabled={isPending || !selectedAttendee}
+                          onClick={() => {
+                            if (!selectedAttendee) {
+                              return;
+                            }
+
+                            setErrorMessage(null);
+                            addOptimisticEnrollment({
+                              kind: "remove",
+                              attendeeId: selectedAttendee.id,
+                              offeringId: offering.id,
+                            });
+
+                            startTransition(async () => {
+                              try {
+                                await removeAttendeeFromClass({
+                                  eventId,
+                                  rosterMemberId: selectedAttendee.id,
+                                  eventClassOfferingId: offering.id,
+                                });
+                              } catch (error) {
+                                const message =
+                                  error instanceof Error ? error.message : "Unable to remove enrollment.";
+                                setErrorMessage(message);
+                              }
+                            });
+                          }}
+                          className="ml-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 );
