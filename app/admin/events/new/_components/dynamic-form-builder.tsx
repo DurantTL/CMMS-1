@@ -49,6 +49,15 @@ function typeAllowsOptions(type: SupportedFormFieldType) {
   return type === "MULTI_SELECT";
 }
 
+function toSuggestedKey(label: string) {
+  return label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
 export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps) {
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({});
 
@@ -201,7 +210,16 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
             <input
               type="text"
               value={field.label}
-              onChange={(event) => updateField(field.id, { label: event.currentTarget.value })}
+              onChange={(event) => {
+                const nextLabel = event.currentTarget.value;
+                const updates: Partial<DynamicFieldDraft> = { label: nextLabel };
+
+                if (field.key.trim().length === 0) {
+                  updates.key = toSuggestedKey(nextLabel);
+                }
+
+                updateField(field.id, updates);
+              }}
               placeholder={isGroup ? "Meals" : "How many meals?"}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
             />
