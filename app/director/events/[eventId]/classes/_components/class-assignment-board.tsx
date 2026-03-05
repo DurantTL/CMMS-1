@@ -204,6 +204,11 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
                 const alreadyEnrolled =
                   selectedAttendee !== null &&
                   (optimisticState.attendeeEnrollmentsById[selectedAttendee.id] ?? []).includes(offering.id);
+                const hasOtherEnrollment =
+                  selectedAttendee !== null &&
+                  (optimisticState.attendeeEnrollmentsById[selectedAttendee.id] ?? []).some(
+                    (enrolledOfferingId) => enrolledOfferingId !== offering.id,
+                  );
                 const eligibility = selectedAttendee
                   ? evaluateClassRequirements(
                       {
@@ -220,6 +225,8 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
                   ? eligibility.blockers[0]
                   : alreadyEnrolled
                     ? "Already enrolled"
+                    : hasOtherEnrollment
+                      ? "Already assigned to another class"
                     : isFull
                       ? "Class full"
                       : null;
@@ -260,7 +267,14 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
                     <div className="mt-4">
                       <button
                         type="button"
-                        disabled={isPending || !selectedAttendee || !eligibility.eligible || alreadyEnrolled || isFull}
+                        disabled={
+                          isPending ||
+                          !selectedAttendee ||
+                          !eligibility.eligible ||
+                          alreadyEnrolled ||
+                          hasOtherEnrollment ||
+                          isFull
+                        }
                         onClick={() => {
                           if (!selectedAttendee) {
                             return;
