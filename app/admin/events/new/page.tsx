@@ -36,11 +36,26 @@ const INITIAL_STATE: CreateEventActionState = {
 export default function AdminCreateEventPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [dynamicFields, setDynamicFields] = useState<DynamicFieldDraft[]>([]);
+  const [clientValidationMessage, setClientValidationMessage] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const created = searchParams.get("created") === "1";
   const [formState, formAction] = useFormState(createEventWithDynamicFields, INITIAL_STATE);
 
   const serializedFields = useMemo(() => JSON.stringify(dynamicFields), [dynamicFields]);
+
+  function validateBeforeSubmit() {
+    for (const [index, field] of dynamicFields.entries()) {
+      if (field.label.trim().length === 0) {
+        return `Dynamic field ${index + 1} is missing a label.`;
+      }
+
+      if (field.type === "MULTI_SELECT" && field.options.length === 0) {
+        return `Dynamic field "${field.label || `#${index + 1}`}" must include at least one option.`;
+      }
+    }
+
+    return null;
+  }
 
   return (
     <section className="space-y-6">
@@ -86,13 +101,30 @@ export default function AdminCreateEventPage() {
         </p>
       ) : null}
 
+      {clientValidationMessage ? (
+        <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {clientValidationMessage}
+        </p>
+      ) : null}
+
       {formState.status === "error" && formState.message ? (
         <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {formState.message}
         </p>
       ) : null}
 
-      <form action={formAction} className="space-y-6">
+      <form
+        action={formAction}
+        className="space-y-6"
+        onSubmit={(event) => {
+          const validationError = validateBeforeSubmit();
+          setClientValidationMessage(validationError);
+
+          if (validationError) {
+            event.preventDefault();
+          }
+        }}
+      >
         <input type="hidden" name="dynamicFieldsJson" value={serializedFields} readOnly />
 
         <div

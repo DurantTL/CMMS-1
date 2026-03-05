@@ -124,6 +124,23 @@ function parseMultiSelectOptionsArray(options: unknown, fieldKey: string) {
   return normalized;
 }
 
+function normalizeDynamicFieldKey(rawKey: string, fallbackLabel: string, index: number) {
+  const source = rawKey.length > 0 ? rawKey : fallbackLabel;
+
+  const normalized = source
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  return `field_${index + 1}`;
+}
+
 function slugifyName(name: string) {
   return name
     .toLowerCase()
@@ -173,18 +190,14 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
   const normalized = parsed.map((field, index) => {
     const candidate = field as IncomingDynamicField;
     const id = (candidate.id ?? "").trim();
-    const key = (candidate.key ?? "").trim();
     const label = (candidate.label ?? "").trim();
+    const key = normalizeDynamicFieldKey((candidate.key ?? "").trim(), label, index);
     const description = (candidate.description ?? "").trim();
     const type = candidate.type;
     const parentFieldId = typeof candidate.parentFieldId === "string" ? candidate.parentFieldId.trim() : null;
 
     if (id.length === 0) {
       throw new Error(`Dynamic field ${index + 1} is missing an id.`);
-    }
-
-    if (key.length === 0) {
-      throw new Error(`Dynamic field ${index + 1} is missing a key.`);
     }
 
     if (label.length === 0) {
@@ -318,10 +331,16 @@ export async function createEventWithDynamicFields(
 
     const uniqueKeys = new Set<string>();
     for (const field of dynamicFields) {
-      if (uniqueKeys.has(field.key)) {
-        throw new Error(`Dynamic field keys must be unique. Duplicate key: ${field.key}`);
+      let candidateKey = field.key;
+      let counter = 2;
+
+      while (uniqueKeys.has(candidateKey)) {
+        candidateKey = `${field.key}_${counter}`;
+        counter += 1;
       }
-      uniqueKeys.add(field.key);
+
+      field.key = candidateKey;
+      uniqueKeys.add(candidateKey);
     }
 
     const slug = await buildUniqueSlug(name);
