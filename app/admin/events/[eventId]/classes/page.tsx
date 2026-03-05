@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 
 import {
+  clearEventClassOfferingEnrollmentsAction,
   createEventClassOfferingAction,
   removeEventClassOfferingAction,
   updateEventClassOfferingAction,
@@ -280,20 +281,33 @@ export default async function AdminEventClassesPage({
                     </td>
                     <td className="px-4 py-3 text-slate-700">{offering._count.enrollments}</td>
                     <td className="px-4 py-3">
-                      <form action={removeEventClassOfferingAction}>
-                        <input type="hidden" name="eventId" value={event.id} readOnly />
-                        <input type="hidden" name="offeringId" value={offering.id} readOnly />
-                        <button
-                          type="submit"
-                          disabled={offering._count.enrollments > 0}
-                          className="rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Remove
-                        </button>
+                      <div className="space-y-2">
+                        <form action={removeEventClassOfferingAction}>
+                          <input type="hidden" name="eventId" value={event.id} readOnly />
+                          <input type="hidden" name="offeringId" value={offering.id} readOnly />
+                          <button
+                            type="submit"
+                            disabled={offering._count.enrollments > 0}
+                            className="rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Remove
+                          </button>
+                        </form>
+
                         {offering._count.enrollments > 0 ? (
-                          <p className="mt-1 text-[11px] text-slate-500">Clear enrollments first</p>
+                          <form action={clearEventClassOfferingEnrollmentsAction} className="space-y-1">
+                            <input type="hidden" name="eventId" value={event.id} readOnly />
+                            <input type="hidden" name="offeringId" value={offering.id} readOnly />
+                            <button
+                              type="submit"
+                              className="rounded-md border border-amber-300 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+                            >
+                              Clear Enrollments
+                            </button>
+                            <p className="text-[11px] text-slate-500">Required before removal</p>
+                          </form>
                         ) : null}
-                      </form>
+                      </div>
                     </td>
                   </tr>
                 ))}

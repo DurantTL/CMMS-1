@@ -676,6 +676,47 @@ export async function removeEventClassOfferingAction(formData: FormData) {
   }
 }
 
+export async function clearEventClassOfferingEnrollmentsAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const offeringId = requireTrimmedString(formData.get("offeringId"), "Offering");
+
+  try {
+    const deleted = await prisma.classEnrollment.deleteMany({
+      where: {
+        eventClassOfferingId: offeringId,
+        offering: {
+          eventId,
+        },
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    revalidatePath(`/admin/events/${eventId}`);
+    revalidatePath(`/director/events/${eventId}/classes`);
+    revalidatePath("/teacher/dashboard");
+
+    if (deleted.count === 0) {
+      redirectEventClassOfferingAction(eventId, "error", "No enrollments were found to clear.");
+    }
+
+    redirectEventClassOfferingAction(
+      eventId,
+      "success",
+      `Cleared ${deleted.count} enrollment(s) from the class offering.`,
+    );
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to clear enrollments.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
+}
+
 type PatchOrderRow = {
   honorName: string;
   honorCode: string;
