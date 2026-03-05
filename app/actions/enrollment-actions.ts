@@ -227,3 +227,53 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
 
   revalidatePath(`/director/events/${input.eventId}/classes`);
 }
+
+export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
+  const clubId = await getDirectorClubIdForEnrollment();
+
+  if (!input.eventId || !input.rosterMemberId || !input.eventClassOfferingId) {
+    throw new Error("Event, attendee, and class offering are required.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const registrationAttendee = await tx.registrationAttendee.findFirst({
+      where: {
+        rosterMemberId: input.rosterMemberId,
+        eventRegistration: {
+          eventId: input.eventId,
+          clubId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!registrationAttendee) {
+      throw new Error("Attendee is not registered for this event under your club.");
+    }
+
+    const offering = await tx.eventClassOffering.findFirst({
+      where: {
+        id: input.eventClassOfferingId,
+        eventId: input.eventId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!offering) {
+      throw new Error("Class offering was not found for this event.");
+    }
+
+    await tx.classEnrollment.deleteMany({
+      where: {
+        eventClassOfferingId: input.eventClassOfferingId,
+        rosterMemberId: input.rosterMemberId,
+      },
+    });
+  });
+
+  revalidatePath(`/director/events/${input.eventId}/classes`);
+}
