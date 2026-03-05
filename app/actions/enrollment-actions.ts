@@ -207,6 +207,37 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       return;
     }
 
+    const conflictingEnrollment = await tx.classEnrollment.findFirst({
+      where: {
+        rosterMemberId: input.rosterMemberId,
+        eventClassOfferingId: {
+          not: input.eventClassOfferingId,
+        },
+        offering: {
+          eventId: input.eventId,
+        },
+      },
+      select: {
+        offering: {
+          select: {
+            classCatalog: {
+              select: {
+                title: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (conflictingEnrollment) {
+      const { title, code } = conflictingEnrollment.offering.classCatalog;
+      throw new Error(
+        `Attendee is already assigned to ${title} (${code}). Remove that enrollment before assigning another class.`,
+      );
+    }
+
     const enrollmentCount = await tx.classEnrollment.count({
       where: {
         eventClassOfferingId: input.eventClassOfferingId,
