@@ -1,5 +1,5 @@
 import { auth } from "../../../auth";
-import { executeYearlyRollover } from "../../actions/roster-actions";
+import { createRosterYear, executeYearlyRollover } from "../../actions/roster-actions";
 import { decryptMedicalFields } from "../../../lib/medical-data";
 import { prisma } from "../../../lib/prisma";
 import { RosterTable } from "./_components/roster-table";
@@ -164,8 +164,22 @@ export default async function DirectorRosterPage() {
         <article className="empty-state">
           <h2 className="text-lg font-semibold text-slate-900">No roster years available</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Create your first roster year in the database, then return here to manage members.
+            Create your first roster year for {CURRENT_YEAR_LABEL}, then start adding members.
           </p>
+          <form
+            className="mt-4"
+            action={async () => {
+              "use server";
+              await createRosterYear(CURRENT_YEAR_LABEL);
+            }}
+          >
+            <button
+              type="submit"
+              className="btn-primary"
+            >
+              Create {CURRENT_YEAR_LABEL} Roster Year
+            </button>
+          </form>
         </article>
       )}
     </section>

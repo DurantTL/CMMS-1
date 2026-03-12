@@ -219,6 +219,62 @@ export async function saveRosterMember(formData: FormData) {
   redirect("/director/roster");
 }
 
+export async function createRosterYear(newYearLabel: string) {
+  const clubId = await getDirectorClubId();
+  const label = newYearLabel.trim();
+
+  if (label.length === 0) {
+    throw new Error("A year label is required.");
+  }
+
+  const yearAsNumber = Number(label);
+  const safeYear = Number.isNaN(yearAsNumber) ? new Date().getFullYear() : yearAsNumber;
+
+  await prisma.$transaction(async (tx) => {
+    const existingYear = await tx.clubRosterYear.findUnique({
+      where: {
+        clubId_yearLabel: {
+          clubId,
+          yearLabel: label,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingYear) {
+      throw new Error("A roster year with this label already exists.");
+    }
+
+    await tx.clubRosterYear.updateMany({
+      where: {
+        clubId,
+        isActive: true,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
+    await tx.clubRosterYear.create({
+      data: {
+        clubId,
+        yearLabel: label,
+        startsOn: new Date(Date.UTC(safeYear, 0, 1, 0, 0, 0)),
+        endsOn: new Date(Date.UTC(safeYear, 11, 31, 23, 59, 59)),
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+  });
+
+  revalidatePath("/director/roster");
+  redirect("/director/roster");
+}
+
 export async function executeYearlyRollover(
   clubId: string,
   previousYearId: string,
