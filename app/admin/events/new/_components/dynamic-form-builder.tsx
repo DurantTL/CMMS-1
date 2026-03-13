@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { type EventFieldConditionalOperator } from "../../../../../lib/event-form-config";
+
 export type SupportedFormFieldType =
   | "SHORT_TEXT"
   | "LONG_TEXT"
@@ -24,6 +26,9 @@ export type DynamicFieldDraft = {
   fieldScope: "GLOBAL" | "ATTENDEE";
   isRequired: boolean;
   options: string[];
+  conditionalFieldKey: string;
+  conditionalOperator: EventFieldConditionalOperator | "";
+  conditionalValue: string;
 };
 
 type DynamicFormBuilderProps = {
@@ -47,6 +52,9 @@ function createEmptyField(
     fieldScope: "GLOBAL",
     isRequired: false,
     options: [],
+    conditionalFieldKey: "",
+    conditionalOperator: "",
+    conditionalValue: "",
   };
 }
 
@@ -73,6 +81,18 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
 
   const rootQuestions = useMemo(
     () => fields.filter((field) => field.type !== "FIELD_GROUP" && field.parentFieldId === null),
+    [fields],
+  );
+
+  const globalDependencyOptions = useMemo(
+    () =>
+      fields
+        .filter((field) => field.type !== "FIELD_GROUP" && field.fieldScope === "GLOBAL")
+        .map((field) => ({
+          id: field.id,
+          key: field.key,
+          label: field.label,
+        })),
     [fields],
   );
 
@@ -168,6 +188,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
 
   function renderFieldCard(field: DynamicFieldDraft, indexLabel: string) {
     const isGroup = field.type === "FIELD_GROUP";
+    const hasConditionalVisibility = field.conditionalFieldKey.length > 0 || field.conditionalOperator.length > 0;
 
     return (
       <article key={field.id} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -254,6 +275,9 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                   fieldScope: nextType === "FIELD_GROUP" ? "GLOBAL" : field.fieldScope,
                   options: typeAllowsOptions(nextType) ? field.options : [],
                   isRequired: nextType === "FIELD_GROUP" ? false : field.isRequired,
+                  conditionalFieldKey: field.conditionalFieldKey,
+                  conditionalOperator: field.conditionalOperator,
+                  conditionalValue: field.conditionalValue,
                 });
               }}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
@@ -343,6 +367,92 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
             )}
           </div>
         ) : null}
+
+        <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Conditional Visibility</p>
+              <p className="text-xs text-slate-500">
+                Show this {isGroup ? "section" : "field"} only when a global question matches the condition.
+              </p>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={hasConditionalVisibility}
+                onChange={(event) =>
+                  updateField(field.id, {
+                    conditionalFieldKey: event.currentTarget.checked ? field.conditionalFieldKey : "",
+                    conditionalOperator: event.currentTarget.checked
+                      ? field.conditionalOperator || "equals"
+                      : "",
+                    conditionalValue: event.currentTarget.checked ? field.conditionalValue : "",
+                  })
+                }
+              />
+              Enabled
+            </label>
+          </div>
+
+          {hasConditionalVisibility ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="space-y-1 text-sm text-slate-700">
+                <span>Depends On</span>
+                <select
+                  value={field.conditionalFieldKey}
+                  onChange={(event) => updateField(field.id, { conditionalFieldKey: event.currentTarget.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                >
+                  <option value="">Select a global field</option>
+                  {globalDependencyOptions
+                    .filter((candidate) => candidate.id !== field.id)
+                    .map((candidate) => (
+                      <option key={`${field.id}-cond-${candidate.id}`} value={candidate.key}>
+                        {candidate.label || candidate.key}
+                      </option>
+                    ))}
+                </select>
+              </label>
+
+              <label className="space-y-1 text-sm text-slate-700">
+                <span>Operator</span>
+                <select
+                  value={field.conditionalOperator || "equals"}
+                  onChange={(event) =>
+                    updateField(field.id, {
+                      conditionalOperator: event.currentTarget.value as EventFieldConditionalOperator,
+                    })
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                >
+                  <option value="equals">equals</option>
+                  <option value="not_equals">not equals</option>
+                  <option value="includes">includes</option>
+                  <option value="not_includes">not includes</option>
+                  <option value="truthy">has a value</option>
+                  <option value="falsy">is blank</option>
+                </select>
+              </label>
+
+              {field.conditionalOperator === "truthy" || field.conditionalOperator === "falsy" ? (
+                <div className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-500">
+                  No comparison value needed for this operator.
+                </div>
+              ) : (
+                <label className="space-y-1 text-sm text-slate-700">
+                  <span>Value</span>
+                  <input
+                    type="text"
+                    value={field.conditionalValue}
+                    onChange={(event) => updateField(field.id, { conditionalValue: event.currentTarget.value })}
+                    placeholder="yes"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                  />
+                </label>
+              )}
+            </div>
+          ) : null}
+        </div>
 
         {isGroup ? (
           <button

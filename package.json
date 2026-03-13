@@ -14,6 +14,7 @@
     "audit:email-normalization": "tsx prisma/audit-user-email-normalization.ts",
     "check:startup": "NODE_ENV=production tsx scripts/run-startup-self-checks.ts",
     "schedule:auth-rate-limit-cleanup": "bash scripts/run-auth-rate-limit-cleanup.sh",
+    "schedule:jobs": "tsx scripts/run-scheduled-jobs.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

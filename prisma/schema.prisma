@@ -148,6 +148,9 @@ model User {
   complianceSyncRuns    ComplianceSyncRun[]
   appliedComplianceSyncRuns ComplianceSyncRun[] @relation("ComplianceSyncRunAppliedBy")
   rosterMemberLinks     UserRosterMemberLink[]
+  eventTemplatesCreated EventTemplate[]
+  camporeeScoresCreated CamporeeScore[]
+  auditLogs             AuditLog[]
 }
 
 model Club {
@@ -168,6 +171,7 @@ model Club {
   nominations     Nomination[]
   tltApplications TltApplication[]
   complianceSyncRuns ComplianceSyncRun[]
+  auditLogs       AuditLog[]
 }
 
 model ClubMembership {
@@ -199,10 +203,29 @@ model ClubRosterYear {
   copiedFromYear   ClubRosterYear?  @relation("RosterYearRollover", fields: [copiedFromYearId], references: [id])
   rolledIntoYears  ClubRosterYear[] @relation("RosterYearRollover")
   members          RosterMember[]
+  clubActivities   ClubActivity[]
   complianceSyncRuns ComplianceSyncRun[]
+  auditLogs        AuditLog[]
 
   @@unique([clubId, yearLabel])
   @@index([clubId, isActive])
+}
+
+model ClubActivity {
+  id                    String         @id @default(cuid())
+  clubRosterYearId      String
+  activityDate          DateTime
+  title                 String
+  pathfinderAttendance  Int
+  staffAttendance       Int
+  uniformCompliance     Int
+  notes                 String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  clubRosterYear ClubRosterYear @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
+
+  @@index([clubRosterYearId, activityDate])
 }
 
 model RosterMember {
@@ -350,6 +373,23 @@ model Event {
   dynamicFields  EventFormField[]
   registrations  EventRegistration[]
   classOfferings EventClassOffering[]
+  camporeeScores CamporeeScore[]
+}
+
+model EventTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  isActive        Boolean  @default(true)
+  snapshot        Json
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdBy User @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, updatedAt])
+  @@index([createdByUserId, updatedAt])
 }
 
 model EventFormField {
@@ -395,9 +435,30 @@ model EventRegistration {
   club          Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
   attendees     RegistrationAttendee[]
   formResponses EventFormResponse[]
+  camporeeScores CamporeeScore[]
 
   @@unique([eventId, clubId])
   @@index([clubId, status])
+}
+
+model CamporeeScore {
+  id                  String   @id @default(cuid())
+  eventId             String
+  eventRegistrationId String
+  category            String
+  score               Float
+  notes               String?
+  createdByUserId     String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
+  createdBy    User              @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([eventRegistrationId, category])
+  @@index([eventId, category, score])
+  @@index([createdByUserId, createdAt])
 }
 
 model RegistrationAttendee {
@@ -514,6 +575,47 @@ model ComplianceSyncRun {
   @@index([scope, createdAt])
   @@index([uploadedByUserId, createdAt])
   @@index([appliedByUserId, createdAt])
+}
+
+model AuditLog {
+  id               String   @id @default(cuid())
+  actorUserId      String?
+  actorRole        UserRole?
+  action           String
+  targetType       String
+  targetId         String?
+  clubId           String?
+  clubRosterYearId String?
+  summary          String
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  actor          User?           @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  club           Club?           @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  clubRosterYear ClubRosterYear? @relation(fields: [clubRosterYearId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, createdAt])
+  @@index([clubId, createdAt])
+  @@index([clubRosterYearId, createdAt])
+}
+
+model ScheduledJobRun {
+  id          String   @id @default(cuid())
+  jobKey      String
+  scopeKey    String
+  runDate     DateTime
+  status      String
+  summary     String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@unique([jobKey, scopeKey, runDate])
+  @@index([jobKey, runDate])
+  @@index([createdAt])
 }
 
 model AuthRateLimitBucket {

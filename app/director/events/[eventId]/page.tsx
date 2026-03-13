@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { getDirectorCamporeeSummary } from "../../../actions/camporee-actions";
 import { getManagedClubContext } from "../../../../lib/club-management";
 import { getRegistrationLifecycleState } from "../../../../lib/registration-lifecycle";
 import { prisma } from "../../../../lib/prisma";
@@ -110,6 +111,7 @@ export default async function DirectorEventRegistrationPage({
   const inLateFeeWindow = new Date() >= event.lateFeeStartsAt;
   const currentPricePerAttendee = inLateFeeWindow ? event.lateFeePrice : event.basePrice;
   const estimatedTotal = attendeeCount * currentPricePerAttendee;
+  const camporeeSummary = await getDirectorCamporeeSummary(eventId, managedClub.clubId);
   const lifecycleState = getRegistrationLifecycleState({
     registrationOpensAt: event.registrationOpensAt,
     registrationClosesAt: event.registrationClosesAt,
@@ -150,6 +152,45 @@ export default async function DirectorEventRegistrationPage({
           </div>
         </dl>
       </header>
+
+      {camporeeSummary && camporeeSummary.scores.length > 0 ? (
+        <article className="glass-panel">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="hero-kicker">Camporee Summary</p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-900">Current Competition Scores</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                These scores are attached to your existing event registration and do not replace the normal registration workflow.
+              </p>
+            </div>
+            <div className="rounded-xl bg-amber-50 px-4 py-3 text-right">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Total Score</p>
+              <p className="text-3xl font-semibold text-amber-900">{camporeeSummary.totalScore}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">Score</th>
+                  <th className="px-4 py-3">Notes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {camporeeSummary.scores.map((score) => (
+                  <tr key={`${camporeeSummary.registrationId}-${score.category}`}>
+                    <td className="px-4 py-3 text-slate-900">{score.category}</td>
+                    <td className="px-4 py-3 text-slate-700">{score.score}</td>
+                    <td className="px-4 py-3 text-slate-600">{score.notes ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      ) : null}
 
       <RegistrationFormFulfiller
         eventId={event.id}

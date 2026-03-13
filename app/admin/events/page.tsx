@@ -18,12 +18,20 @@ export default async function AdminEventsPage() {
           Review event windows, registration status, and open overseer pages.
         </p>
         <div className="mt-4">
-          <Link
-            href="/admin/events/new"
-            className="btn-primary inline-flex"
-          >
-            Create Event
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/admin/events/new"
+              className="btn-primary inline-flex"
+            >
+              Create Event
+            </Link>
+            <Link
+              href="/admin/events/new"
+              className="btn-secondary inline-flex"
+            >
+              Manage Templates
+            </Link>
+          </div>
         </div>
       </header>
 

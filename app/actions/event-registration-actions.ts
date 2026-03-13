@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { getManagedClubContext } from "../../lib/club-management";
 import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
+import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-config";
 import { getFieldScope } from "../../lib/event-form-scope";
 import { prisma } from "../../lib/prisma";
 import { assertRegistrationCanPersist } from "../../lib/registration-lifecycle";
@@ -75,11 +76,7 @@ function parsePayload(rawPayload: FormDataEntryValue | null): RegistrationPayloa
 }
 
 function parseStringOptions(options: unknown) {
-  if (!Array.isArray(options)) {
-    return [];
-  }
-
-  return options.filter((option): option is string => typeof option === "string");
+  return readEventFieldConfig(options).optionValues;
 }
 
 function hasResponseValue(value: unknown) {
@@ -341,12 +338,27 @@ export async function persistRegistrationForClub(input: {
     }
   }
 
+  const globalResponsesByFieldKey = Object.fromEntries(
+    dynamicFieldRules
+      .filter((field) => getFieldScope(field) === FormFieldScope.GLOBAL)
+      .map((field) => [field.key, globalResponseByFieldId.get(field.id)]),
+  );
+
+  const visibleFieldIds = new Set(
+    dynamicFieldRules
+      .filter((field) => isEventFieldVisible(field, globalResponsesByFieldKey))
+      .map((field) => field.id),
+  );
+
+  const visibleDynamicFieldRules = dynamicFieldRules.filter((field) => visibleFieldIds.has(field.id));
+  const filteredResponses = responses.filter((response) => visibleFieldIds.has(response.eventFormFieldId));
+
   if (input.nextStatus === RegistrationStatus.SUBMITTED) {
     if (attendeeIds.length === 0) {
       throw new Error("Select at least one attendee before submitting registration.");
     }
 
-    for (const field of dynamicFieldRules) {
+    for (const field of visibleDynamicFieldRules) {
       if (getFieldScope(field) === FormFieldScope.ATTENDEE) {
         const responseValuesByAttendee = attendeeResponseByFieldId.get(field.id) ?? new Map<string, unknown>();
 
@@ -468,9 +480,9 @@ export async function persistRegistrationForClub(input: {
       },
     });
 
-    if (responses.length > 0) {
+    if (filteredResponses.length > 0) {
       await tx.eventFormResponse.createMany({
-        data: responses.map((response) => ({
+        data: filteredResponses.map((response) => ({
           eventRegistrationId: registration.id,
           eventFormFieldId: response.eventFormFieldId,
           attendeeId: response.attendeeId,

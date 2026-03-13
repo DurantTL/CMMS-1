@@ -6,9 +6,21 @@ import { redirect } from "next/navigation";
 
 import {
   type CreateEventActionState,
+  type EventTemplateActionState,
   type UpdateEventActionState,
 } from "./event-admin-state";
 import { auth } from "../../auth";
+import {
+  createEventFromInput,
+  replaceEventDynamicFields,
+  type EventMutationInput,
+} from "../../lib/data/event-admin";
+import {
+  buildStoredEventFieldOptions,
+  readEventFieldConfig,
+  type EventFieldConditionalOperator,
+} from "../../lib/event-form-config";
+import { buildEventTemplateSnapshot } from "../../lib/event-templates";
 import { prisma } from "../../lib/prisma";
 
 type IncomingDynamicField = {
@@ -22,6 +34,9 @@ type IncomingDynamicField = {
   isRequired?: boolean;
   options?: string[];
   optionsJson?: string;
+  conditionalFieldKey?: string;
+  conditionalOperator?: string;
+  conditionalValue?: string;
 };
 
 function requireTrimmedString(value: FormDataEntryValue | null, fieldLabel: string) {
@@ -235,15 +250,33 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
       );
     }
 
-    let options: Prisma.InputJsonValue | undefined;
+    let optionValues: string[] = [];
 
     if (type === FormFieldType.SINGLE_SELECT || type === FormFieldType.MULTI_SELECT) {
       if (Array.isArray(candidate.options)) {
-        options = parseSelectOptionsArray(candidate.options, key);
+        optionValues = parseSelectOptionsArray(candidate.options, key);
       } else {
         const optionsRaw = typeof candidate.optionsJson === "string" ? candidate.optionsJson : "";
-        options = parseSelectOptions(optionsRaw, key);
+        optionValues = parseSelectOptions(optionsRaw, key);
       }
+    }
+
+    const conditionalFieldKey =
+      typeof candidate.conditionalFieldKey === "string" ? candidate.conditionalFieldKey.trim() : "";
+    const conditionalOperator =
+      typeof candidate.conditionalOperator === "string" ? candidate.conditionalOperator.trim() : "";
+    const conditionalValue =
+      typeof candidate.conditionalValue === "string" ? candidate.conditionalValue : "";
+
+    if (conditionalFieldKey.length > 0 && conditionalOperator.length === 0) {
+      throw new Error(`Dynamic field "${key}" is missing a conditional operator.`);
+    }
+
+    if (
+      conditionalOperator.length > 0 &&
+      !["equals", "not_equals", "includes", "not_includes", "truthy", "falsy"].includes(conditionalOperator)
+    ) {
+      throw new Error(`Dynamic field "${key}" has an invalid conditional operator.`);
     }
 
     return {
@@ -253,7 +286,17 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
       label,
       description: description.length > 0 ? description : null,
       type: type as FormFieldType,
-      options: options ?? null,
+      options: buildStoredEventFieldOptions({
+        optionValues,
+        conditional:
+          conditionalFieldKey.length > 0 && conditionalOperator.length > 0
+            ? {
+                fieldKey: conditionalFieldKey,
+                operator: conditionalOperator as EventFieldConditionalOperator,
+                value: conditionalValue,
+              }
+            : null,
+      }),
       fieldScope: type === FormFieldType.FIELD_GROUP ? FormFieldScope.GLOBAL : fieldScope,
       isRequired: type === FormFieldType.FIELD_GROUP ? false : Boolean(candidate.isRequired),
       sortOrder: index,
@@ -281,6 +324,28 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
     }
   }
 
+  for (const field of normalized) {
+    const conditional = readEventFieldConfig(field.options).conditional;
+
+    if (!conditional) {
+      continue;
+    }
+
+    if (conditional.fieldKey === field.key) {
+      throw new Error(`Field "${field.key}" cannot depend on itself.`);
+    }
+
+    const dependency = normalized.find((candidate) => candidate.key === conditional.fieldKey);
+
+    if (!dependency) {
+      throw new Error(`Field "${field.key}" references an unknown conditional field key.`);
+    }
+
+    if (dependency.type === FormFieldType.FIELD_GROUP || dependency.fieldScope !== FormFieldScope.GLOBAL) {
+      throw new Error(`Field "${field.key}" must depend on a global non-group field.`);
+    }
+  }
+
   return normalized;
 }
 
@@ -300,73 +365,6 @@ function prepareUniqueDynamicFieldKeys(
 
     field.key = candidateKey;
     uniqueKeys.add(candidateKey);
-  }
-}
-
-async function replaceEventDynamicFields(
-  tx: Prisma.TransactionClient,
-  eventId: string,
-  dynamicFields: ReturnType<typeof parseDynamicFields>,
-) {
-  await tx.eventFormField.deleteMany({
-    where: {
-      eventId,
-    },
-  });
-
-  if (dynamicFields.length === 0) {
-    return;
-  }
-
-  const idMap = new Map<string, string>();
-
-  for (const field of dynamicFields.filter((entry) => entry.parentFieldId === null)) {
-    const created = await tx.eventFormField.create({
-      data: {
-        eventId,
-        key: field.key,
-        label: field.label,
-        description: field.description,
-        type: field.type,
-        fieldScope: field.fieldScope,
-        options: field.options,
-        isRequired: field.isRequired,
-        sortOrder: field.sortOrder,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    idMap.set(field.id, created.id);
-  }
-
-  for (const field of dynamicFields.filter((entry) => entry.parentFieldId !== null)) {
-    const mappedParentId = idMap.get(field.parentFieldId as string);
-
-    if (!mappedParentId) {
-      throw new Error(`Could not resolve parent for field: ${field.key}`);
-    }
-
-    const created = await tx.eventFormField.create({
-      data: {
-        eventId,
-        parentFieldId: mappedParentId,
-        key: field.key,
-        label: field.label,
-        description: field.description,
-        type: field.type,
-        fieldScope: field.fieldScope,
-        options: field.options,
-        isRequired: field.isRequired,
-        sortOrder: field.sortOrder,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    idMap.set(field.id, created.id);
   }
 }
 
@@ -403,69 +401,67 @@ function isRedirectError(error: unknown) {
   );
 }
 
+function parseEventMutationInput(formData: FormData): EventMutationInput {
+  const name = requireTrimmedString(formData.get("name"), "Event name");
+  const startsAt = parseRequiredDate(formData.get("startsAt"), "Event start date");
+  const endsAt = parseRequiredDate(formData.get("endsAt"), "Event end date");
+  const registrationOpensAt = parseRequiredDate(
+    formData.get("registrationOpensAt"),
+    "Registration open date",
+  );
+  const registrationClosesAt = parseRequiredDate(
+    formData.get("registrationClosesAt"),
+    "Registration close date",
+  );
+  const basePrice = parseRequiredFloat(formData.get("basePrice"), "Base price");
+  const lateFeePrice = parseRequiredFloat(formData.get("lateFeePrice"), "Late fee price");
+  const lateFeeStartsAt = parseRequiredDate(formData.get("lateFeeStartsAt"), "Late fee start date");
+  const locationName = optionalTrimmedString(formData.get("locationName"));
+  const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
+  const description = optionalTrimmedString(formData.get("description"));
+  const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
+
+  validateEventTimeline({
+    startsAt,
+    endsAt,
+    registrationOpensAt,
+    registrationClosesAt,
+    lateFeeStartsAt,
+  });
+
+  prepareUniqueDynamicFieldKeys(dynamicFields);
+
+  return {
+    name,
+    description,
+    startsAt,
+    endsAt,
+    registrationOpensAt,
+    registrationClosesAt,
+    basePrice,
+    lateFeePrice,
+    lateFeeStartsAt,
+    locationName,
+    locationAddress,
+    dynamicFields,
+  };
+}
+
 export async function createEventWithDynamicFields(
   _prevState: CreateEventActionState,
   formData: FormData,
 ): Promise<CreateEventActionState> {
   try {
     const createdByUserId = await requireSuperAdminUserId();
-
-    const name = requireTrimmedString(formData.get("name"), "Event name");
-    const startsAt = parseRequiredDate(formData.get("startsAt"), "Event start date");
-    const endsAt = parseRequiredDate(formData.get("endsAt"), "Event end date");
-    const registrationOpensAt = parseRequiredDate(
-      formData.get("registrationOpensAt"),
-      "Registration open date",
-    );
-    const registrationClosesAt = parseRequiredDate(
-      formData.get("registrationClosesAt"),
-      "Registration close date",
-    );
-    const basePrice = parseRequiredFloat(formData.get("basePrice"), "Base price");
-    const lateFeePrice = parseRequiredFloat(formData.get("lateFeePrice"), "Late fee price");
-    const lateFeeStartsAt = parseRequiredDate(formData.get("lateFeeStartsAt"), "Late fee start date");
-
-    validateEventTimeline({
-      startsAt,
-      endsAt,
-      registrationOpensAt,
-      registrationClosesAt,
-      lateFeeStartsAt,
-    });
-
-    const locationName = optionalTrimmedString(formData.get("locationName"));
-    const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
-    const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
-
-    prepareUniqueDynamicFieldKeys(dynamicFields);
-
-    const slug = await buildUniqueSlug(name);
+    const input = parseEventMutationInput(formData);
+    const slug = await buildUniqueSlug(input.name);
 
     await prisma.$transaction(async (tx) => {
-      const event = await tx.event.create({
-        data: {
-          name,
-          slug,
-          startsAt,
-          endsAt,
-          registrationOpensAt,
-          registrationClosesAt,
-          basePrice,
-          lateFeePrice,
-          lateFeeStartsAt,
-          locationName,
-          locationAddress,
-          createdByUserId,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      await replaceEventDynamicFields(tx, event.id, dynamicFields);
+      await createEventFromInput(tx, input, createdByUserId, slug);
     });
 
     revalidatePath("/admin/events/new");
+    revalidatePath("/admin/events");
     redirect("/admin/events/new?created=1");
   } catch (error) {
     if (isRedirectError(error)) {
@@ -477,6 +473,78 @@ export async function createEventWithDynamicFields(
       message: error instanceof Error ? error.message : "Unable to create event.",
     };
   }
+}
+
+export async function saveEventTemplate(
+  _prevState: EventTemplateActionState,
+  formData: FormData,
+): Promise<EventTemplateActionState> {
+  try {
+    const createdByUserId = await requireSuperAdminUserId();
+    const templateId = optionalTrimmedString(formData.get("templateId"));
+    const templateName = requireTrimmedString(formData.get("templateName"), "Template name");
+    const templateDescription = optionalTrimmedString(formData.get("templateDescription"));
+    const isActive = formData.get("templateIsActive") === "on";
+    const input = parseEventMutationInput(formData);
+
+    const snapshot = buildEventTemplateSnapshot({
+      ...input,
+      dynamicFields: input.dynamicFields,
+    });
+
+    if (templateId) {
+      await prisma.eventTemplate.update({
+        where: {
+          id: templateId,
+        },
+        data: {
+          name: templateName,
+          description: templateDescription,
+          isActive,
+          snapshot,
+        },
+      });
+    } else {
+      await prisma.eventTemplate.create({
+        data: {
+          name: templateName,
+          description: templateDescription,
+          isActive,
+          snapshot,
+          createdByUserId,
+        },
+      });
+    }
+
+    revalidatePath("/admin/events/new");
+    return {
+      status: "success",
+      message: templateId ? "Event template updated." : "Event template saved.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to save event template.",
+    };
+  }
+}
+
+export async function toggleEventTemplateActive(formData: FormData) {
+  await requireSuperAdminUserId();
+
+  const templateId = requireTrimmedString(formData.get("templateId"), "Template");
+  const nextActiveValue = requireTrimmedString(formData.get("nextActive"), "Template active state");
+
+  await prisma.eventTemplate.update({
+    where: {
+      id: templateId,
+    },
+    data: {
+      isActive: nextActiveValue === "true",
+    },
+  });
+
+  revalidatePath("/admin/events/new");
 }
 
 export async function updateEventCoreDetails(
@@ -565,6 +633,19 @@ export async function updateEventDynamicFields(
       },
       select: {
         id: true,
+        name: true,
+        description: true,
+        startsAt: true,
+        endsAt: true,
+        registrationOpensAt: true,
+        registrationClosesAt: true,
+        basePrice: true,
+        lateFeePrice: true,
+        lateFeeStartsAt: true,
+        locationName: true,
+        locationAddress: true,
+        createdByUserId: true,
+        slug: true,
       },
     });
 

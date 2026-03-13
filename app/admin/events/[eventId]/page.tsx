@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getCamporeeDashboardData } from "../../../actions/camporee-actions";
 import {
   getAdminEventRegistrations,
   getMasterEventAttendeesCsv,
@@ -25,6 +26,7 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
   }
 
   const csvData = await getMasterEventAttendeesCsv(eventId);
+  const camporeeDashboard = await getCamporeeDashboardData(eventId).catch(() => null);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csvData.content)}`;
 
   return (
@@ -84,6 +86,12 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
             className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500"
           >
             Open Compliance Dashboard
+          </Link>
+          <Link
+            href={`/admin/events/${eventId}/camporee`}
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500"
+          >
+            Open Camporee Scoring
           </Link>
           <Link
             href="/admin/dashboard"
@@ -146,6 +154,38 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
               </tbody>
             </table>
           </div>
+        )}
+      </article>
+
+      <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Camporee Standings</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Competition scoring is additive. Camporee registration still runs through the normal event registration flow, including grouped modules and attendee selections.
+            </p>
+          </div>
+          <Link
+            href={`/admin/events/${eventId}/camporee`}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+          >
+            Manage Scores
+          </Link>
+        </div>
+
+        {!camporeeDashboard || camporeeDashboard.totalStandings.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-600">No Camporee scores have been recorded for this event yet.</p>
+        ) : (
+          <ol className="mt-4 grid gap-3 md:grid-cols-3">
+            {camporeeDashboard.totalStandings.slice(0, 3).map((standing) => (
+              <li key={standing.registrationId} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Rank #{standing.rank}</p>
+                <p className="mt-2 text-base font-semibold text-slate-900">{standing.clubName}</p>
+                <p className="text-xs text-slate-500">{standing.clubCode}</p>
+                <p className="mt-3 text-2xl font-semibold text-indigo-700">{standing.totalScore}</p>
+              </li>
+            ))}
+          </ol>
         )}
       </article>
     </section>

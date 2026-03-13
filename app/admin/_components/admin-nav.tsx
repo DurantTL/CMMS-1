@@ -15,6 +15,7 @@ const navItems: AdminNavItem[] = [
   { href: "/admin/events", label: "Events" },
   { href: "/admin/catalog", label: "Class Catalog" },
   { href: "/admin/compliance", label: "Compliance" },
+  { href: "/admin/audit", label: "Audit" },
   { href: "/admin/nominations", label: "Nominations" },
   { href: "/admin/reports", label: "Reports" },
   { href: "/admin/storage", label: "Storage" },

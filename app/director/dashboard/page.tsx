@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { MemberRole, RegistrationStatus } from "@prisma/client";
 
+import { getMonthWindow, parseMonthInput } from "../../../lib/club-activity";
 import { getManagedClubContext } from "../../../lib/club-management";
+import { getDirectorComplianceDashboardData } from "../../../lib/data/compliance-dashboard";
+import { buildDirectorDashboardHealth } from "../../../lib/director-dashboard-health";
 import { buildDirectorPath } from "../../../lib/director-path";
 import { prisma } from "../../../lib/prisma";
 
 function formatDateRange(startsAt: Date, endsAt: Date) {
   return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
+}
+
+function formatDateTime(value: Date | null) {
+  return value ? value.toLocaleString() : "—";
 }
 
 export default async function ClubDirectorDashboardPage({
@@ -37,6 +44,9 @@ export default async function ClubDirectorDashboardPage({
               lastName: true,
               memberRole: true,
               backgroundCheckCleared: true,
+              photoReleaseConsent: true,
+              medicalTreatmentConsent: true,
+              membershipAgreementConsent: true,
             },
           },
         },
@@ -59,42 +69,106 @@ export default async function ClubDirectorDashboardPage({
 
   const activeRoster = club.rosterYears[0] ?? null;
   const activeMembers = activeRoster?.members ?? [];
+  const currentMonthStart = parseMonthInput();
+  const { monthEndExclusive } = getMonthWindow(currentMonthStart);
 
-  const [upcomingEvents, clubRegistrations] = await Promise.all([
-    prisma.event.findMany({
-      where: {
-        endsAt: {
-          gte: new Date(),
+  const upcomingEventsPromise = prisma.event.findMany({
+    where: {
+      endsAt: {
+        gte: new Date(),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      startsAt: true,
+      endsAt: true,
+    },
+    orderBy: {
+      startsAt: "asc",
+    },
+    take: 4,
+  });
+
+  const clubRegistrationsPromise = prisma.eventRegistration.findMany({
+    where: {
+      clubId: club.id,
+    },
+    select: {
+      eventId: true,
+      status: true,
+      _count: {
+        select: {
+          attendees: true,
         },
       },
-      select: {
-        id: true,
-        name: true,
-        startsAt: true,
-        endsAt: true,
-      },
-      orderBy: {
-        startsAt: "asc",
-      },
-      take: 4,
-    }),
-    prisma.eventRegistration.findMany({
-      where: {
-        clubId: club.id,
-      },
-      select: {
-        eventId: true,
-        status: true,
-        _count: {
-          select: {
-            attendees: true,
+    },
+  });
+
+  const currentMonthActivityCountPromise = activeRoster
+    ? prisma.clubActivity.count({
+        where: {
+          clubRosterYearId: activeRoster.id,
+          activityDate: {
+            gte: currentMonthStart,
+            lt: monthEndExclusive,
           },
         },
-      },
-    }),
-  ]);
+      })
+    : Promise.resolve(0);
 
-  const registrationByEventId = new Map(clubRegistrations.map((registration) => [registration.eventId, registration]));
+  const latestMonthlyReportPromise = prisma.monthlyReport.findFirst({
+    where: {
+      clubId: club.id,
+    },
+    orderBy: {
+      reportMonth: "desc",
+    },
+    select: {
+      reportMonth: true,
+      status: true,
+    },
+  });
+
+  const currentMonthReportPromise = prisma.monthlyReport.findUnique({
+    where: {
+      clubId_reportMonth: {
+        clubId: club.id,
+        reportMonth: currentMonthStart,
+      },
+    },
+    select: {
+      status: true,
+    },
+  });
+
+  const latestYearEndReportPromise = prisma.yearEndReport.findFirst({
+    where: {
+      clubId: club.id,
+    },
+    orderBy: {
+      reportYear: "desc",
+    },
+    select: {
+      status: true,
+    },
+  });
+
+  const [upcomingEvents, clubRegistrations, currentMonthActivityCount, latestMonthlyReport, currentMonthReport, latestYearEndReport] = await Promise.all([
+    upcomingEventsPromise,
+    clubRegistrationsPromise,
+    currentMonthActivityCountPromise,
+    latestMonthlyReportPromise,
+    currentMonthReportPromise,
+    latestYearEndReportPromise,
+  ]);
+  const complianceDashboard = await getDirectorComplianceDashboardData(club.id);
+
+  type ClubRegistrationSummary = Awaited<typeof clubRegistrationsPromise>[number];
+
+  const registrationByEventId = new Map<string, ClubRegistrationSummary>(
+    clubRegistrations.map((registration) => [registration.eventId, registration]),
+  );
 
   const submittedRegistrations = clubRegistrations.filter(
     (registration) => registration.status === RegistrationStatus.SUBMITTED,
@@ -102,6 +176,10 @@ export default async function ClubDirectorDashboardPage({
 
   const draftRegistrations = clubRegistrations.filter(
     (registration) => registration.status === RegistrationStatus.DRAFT,
+  ).length;
+
+  const notStartedRegistrations = upcomingEvents.filter(
+    (event) => !registrationByEventId.has(event.id),
   ).length;
 
   const staffMissingClearance = activeMembers.filter(
@@ -125,6 +203,25 @@ export default async function ClubDirectorDashboardPage({
   if (upcomingEvents.length === 0) {
     alerts.push("No upcoming events are currently published by conference administration.");
   }
+
+  const dashboardHealth = buildDirectorDashboardHealth({
+    hasActiveRoster: Boolean(activeRoster),
+    activeMemberCount: activeMembers.length,
+    missingConsentCount: activeMembers.filter(
+      (member) =>
+        !member.photoReleaseConsent || !member.medicalTreatmentConsent || !member.membershipAgreementConsent,
+    ).length,
+    adultCount: complianceDashboard?.compliance.adultCount ?? 0,
+    unclearedAdultCount: complianceDashboard?.compliance.unclearedAdultCount ?? 0,
+    upcomingEventCount: upcomingEvents.length,
+    draftRegistrationCount: draftRegistrations,
+    submittedRegistrationCount: submittedRegistrations,
+    notStartedEventCount: notStartedRegistrations,
+    currentMonthReportStatus: currentMonthReport?.status ?? null,
+    latestMonthlyReportStatus: latestMonthlyReport?.status ?? null,
+    currentMonthActivityCount: activeRoster ? currentMonthActivityCount : null,
+    yearEndReportStatus: latestYearEndReport?.status ?? null,
+  });
 
   return (
     <section className="space-y-8">
@@ -173,7 +270,62 @@ export default async function ClubDirectorDashboardPage({
           <p className="metric-value">{draftRegistrations}</p>
           <p className="metric-caption">In progress and editable.</p>
         </article>
+        <article className="metric-card">
+          <p className="metric-label">Activities this month</p>
+          <p className="metric-value">{currentMonthActivityCount}</p>
+          <p className="metric-caption">Logged for monthly report auto-fill.</p>
+        </article>
+        <article className="metric-card">
+          <p className="metric-label">Latest monthly report</p>
+          <p className="metric-value text-2xl">
+            {latestMonthlyReport ? latestMonthlyReport.status : "NONE"}
+          </p>
+          <p className="metric-caption">
+            {latestMonthlyReport
+              ? `Latest month: ${latestMonthlyReport.reportMonth.toLocaleDateString(undefined, {
+                  month: "short",
+                  year: "numeric",
+                })}`
+              : "No monthly reports submitted yet."}
+          </p>
+        </article>
+        <article className="metric-card">
+          <p className="metric-label">Adult clearances</p>
+          <p className="metric-value">
+            {complianceDashboard ? `${complianceDashboard.compliance.clearedAdultCount}/${complianceDashboard.compliance.adultCount}` : "0/0"}
+          </p>
+          <p className="metric-caption">
+            {complianceDashboard
+              ? `${complianceDashboard.compliance.clearanceRate}% of staff/director/counselor records cleared`
+              : "No active roster year compliance data."}
+          </p>
+        </article>
       </div>
+
+      <article className="glass-panel">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h3 className="section-title">Readiness Snapshot</h3>
+            <p className="section-copy">
+              Derived health indicators built from your live roster, compliance, event, report, and activity data.
+            </p>
+          </div>
+          <span className="status-chip-neutral">{dashboardHealth.cards.length} health areas</span>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          {dashboardHealth.cards.map((card) => (
+            <article key={card.key} className="glass-card-soft">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.title}</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{card.summary}</p>
+              <p className="mt-2 text-sm text-slate-600">{card.detail}</p>
+              <p className="mt-3 text-xs font-medium text-slate-500">
+                {card.status.toUpperCase()} • {card.action}
+              </p>
+            </article>
+          ))}
+        </div>
+      </article>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <article className="glass-panel">
@@ -219,12 +371,75 @@ export default async function ClubDirectorDashboardPage({
         </article>
 
         <article className="glass-panel">
+          <div className="mb-4">
+            <h3 className="section-title">Compliance Readiness</h3>
+            <p className="section-copy">
+              Sterling clearance status for the active roster year. Conference admins still control sync preview/apply.
+            </p>
+          </div>
+
+          {!complianceDashboard ? (
+            <p className="empty-state text-sm text-slate-600">No active roster-year compliance snapshot is available yet.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="glass-card-soft">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Adult roles cleared</p>
+                  <p className="text-2xl font-semibold text-slate-900">
+                    {complianceDashboard.compliance.clearedAdultCount} / {complianceDashboard.compliance.adultCount}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {complianceDashboard.compliance.unclearedAdultCount} still missing Sterling clearance
+                  </p>
+                </div>
+                <div className="glass-card-soft">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Latest admin sync</p>
+                  <p className="text-2xl font-semibold text-slate-900">{complianceDashboard.compliance.latestRunStatus}</p>
+                  <p className="text-xs text-slate-500">{formatDateTime(complianceDashboard.compliance.latestRunAt)}</p>
+                </div>
+              </div>
+
+              {complianceDashboard.recentRuns.length > 0 ? (
+                <div className="glass-card-soft">
+                  <p className="text-sm font-semibold text-slate-900">Recent compliance sync activity</p>
+                  <ol className="mt-3 space-y-2 text-sm text-slate-700">
+                    {complianceDashboard.recentRuns.map((run) => (
+                      <li key={run.id} className="flex items-center justify-between gap-3">
+                        <span>
+                          {run.status} • {run.fileName}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {run.updateCount} update(s), {run.ambiguousCount} ambiguous
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+
+              {complianceDashboard.adultMembersMissingClearance.length > 0 ? (
+                <div className="glass-card-soft">
+                  <p className="text-sm font-semibold text-slate-900">Adults still blocking submissions</p>
+                  <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                    {complianceDashboard.adultMembersMissingClearance.slice(0, 6).map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="alert-success">No adult roster members are currently missing Sterling clearance.</p>
+              )}
+            </div>
+          )}
+        </article>
+
+        <article className="glass-panel">
           <h3 className="section-title">Action Alerts</h3>
-          {alerts.length === 0 ? (
+          {alerts.length === 0 && dashboardHealth.alerts.length === 0 ? (
             <p className="alert-success mt-4">No blocking alerts detected.</p>
           ) : (
             <ul className="mt-4 space-y-3">
-              {alerts.map((alert) => (
+              {[...alerts, ...dashboardHealth.alerts].map((alert) => (
                 <li
                   key={alert}
                   className="alert-warning"

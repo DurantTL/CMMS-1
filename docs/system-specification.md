@@ -1,6 +1,6 @@
 # CMMS System Specification
 
-This is the source-of-truth reference for the CMMS codebase. All AI development prompts should reference this document to prevent building features that already exist.
+This is the source-of-truth reference for the CMMS codebase. All AI development prompts should reference this document first to prevent rebuilding features that already exist.
 
 **Last updated:** 2026-03-13
 
@@ -23,6 +23,22 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 
 ---
 
+## 1.1 Architectural Guardrails
+
+Future work should extend existing CMMS systems with these rules:
+
+- Every server action should call `auth()` and verify `session.user.role`
+- Director-scoped features should use `getManagedClubContext()` from `lib/club-management.ts`
+- Mutations should call `revalidatePath()`
+- Year-scoped club data should attach to `ClubRosterYear`
+- Capacity-sensitive enrollment behavior should stay inside serializable transactions
+- New features should add tests under `tests/`
+- Prefer extending existing models over creating duplicates
+
+These guardrails are especially important for AI-assisted implementation.
+
+---
+
 ## 2. Model Inventory
 
 ### Identity & Access Control
@@ -38,6 +54,7 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 | Model | Purpose | Key Fields | Relations |
 |---|---|---|---|
 | `ClubRosterYear` | Yearly roster snapshot | clubId, yearLabel, startsOn, endsOn, isActive, copiedFromYearId | members, complianceSyncRuns. Unique on (clubId, yearLabel) |
+| `ClubActivity` | Logged club activity source for reporting | clubRosterYearId, activityDate, title, pathfinderAttendance, staffAttendance, uniformCompliance | Belongs to `ClubRosterYear` and feeds monthly report auto-fill |
 | `RosterMember` | Individual member (70+ fields) | firstName, lastName, dateOfBirth, ageAtStart, gender, memberRole, medicalFlags, dietaryRestrictions, backgroundCheckDate/Cleared, photoReleaseConsent, medicalTreatmentConsent, membershipAgreementConsent, insuranceCardFilename, rolloverStatus, isActive | registrations, classEnrollments, completedRequirements, eventFormResponses, nominations, tltApplication, portalUsers |
 | `UserRosterMemberLink` | Student portal access | userId, rosterMemberId | Unique on (userId, rosterMemberId) |
 
@@ -54,10 +71,12 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 | Model | Purpose | Key Fields | Relations |
 |---|---|---|---|
 | `Event` | Event master | name, slug (unique), startsAt, endsAt, registrationOpensAt/ClosesAt, basePrice, lateFeePrice, lateFeeStartsAt, locationName/Address | dynamicFields, registrations, classOfferings |
+| `EventTemplate` | Reusable event blueprint | name, description, isActive, snapshot (JSON), createdByUserId | Created events remain editable and independent after template apply |
 | `EventFormField` | Dynamic form question | eventId, parentFieldId, key, label, type, fieldScope (GLOBAL/ATTENDEE), options (JSON), isRequired, sortOrder | childFields, responses. Unique on (eventId, key) |
 | `EventRegistration` | Club registration | eventId, clubId, registrationCode (unique), status, totalDue, amountPaid, paymentStatus | attendees, formResponses. Unique on (eventId, clubId) |
 | `RegistrationAttendee` | Attendee link | eventRegistrationId, rosterMemberId, checkedInAt | Unique on (registrationId, memberId) |
 | `EventFormResponse` | Form answer | eventRegistrationId, eventFormFieldId, attendeeId (null=GLOBAL), value (JSON) | Unique on (registrationId, fieldId, attendeeId) |
+| `CamporeeScore` | Additive Camporee competition scoring | eventId, eventRegistrationId, category, score, createdByUserId | Extends existing event registrations rather than creating a separate Camporee registration system |
 
 ### Classes & Enrollment
 
@@ -81,6 +100,8 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 | Model | Purpose | Key Fields | Relations |
 |---|---|---|---|
 | `ComplianceSyncRun` | Sterling CSV sync audit | uploadedByUserId, appliedByUserId, scope, clubId, clubRosterYearId, fileName, status, processedRows, passedRows, updateCount, skippedCount, ambiguousCount, rowResults (JSON), appliedAt | |
+| `AuditLog` | Sensitive operational audit trail | actorUserId, actorRole, action, targetType, targetId, clubId, clubRosterYearId, summary, metadata | Best-effort logging for sensitive workflows |
+| `ScheduledJobRun` | Scheduled job idempotency and status | jobKey, scopeKey, runDate, status, summary, metadata, completedAt | Tracks cron/API-triggered maintenance and reminders |
 | `AuthRateLimitBucket` | Login throttling | keyHash (PK), scopeType (EMAIL_IP/IP), attemptCount, windowStartedAt, blockedUntil | |
 
 ### Enums
@@ -142,6 +163,8 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 
 ### `app/actions/event-admin-actions.ts` (607 LOC)
 - `createEventWithDynamicFields(...)` — create event + form fields
+- `saveEventTemplate(...)` — save or update reusable event template snapshots
+- `toggleEventTemplateActive(formData)` — activate/deactivate a template
 - `updateEventCoreDetails(...)` — update event metadata
 - `updateEventDynamicFields(...)` — update form fields
 
@@ -156,15 +179,19 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 - `executeYearlyRollover(...)` — copy members to new year
 
 ### `app/actions/enrollment-actions.ts` (344 LOC)
-- `enrollAttendeeInClassForClub(input)` — enroll with club context
 - `enrollAttendeeInClass(input)` — enroll (admin)
-- `removeAttendeeFromClassForClub(input)` — remove with club context
 - `removeAttendeeFromClass(input)` — remove (admin)
+- `bulkEnrollAttendeesInClass(input)` — bulk enroll using existing prerequisite/conflict/capacity rules
+- `bulkRemoveAttendeesFromClass(input)` — bulk remove from an offering
 
 ### `app/actions/compliance-actions.ts` (480 LOC)
 - `previewSterlingBackgroundChecks(...)` — parse CSV, preview matches
 - `applySterlingBackgroundChecksPreview(...)` — apply preview results
-- `applyComplianceSyncRun(runId, userId)` — apply sync run
+
+### `app/actions/camporee-actions.ts`
+- `getCamporeeDashboardData(eventId)` — admin Camporee scoring dashboard
+- `saveCamporeeScore(formData)` — save additive scoring by category
+- `getDirectorCamporeeSummary(eventId, clubIdOverride?)` — director score summary for the club registration
 
 ### `app/actions/tlt-recommendation-actions.ts` (454 LOC)
 - `generateTltRecommendationLinks(...)` — create recommendation links
@@ -180,6 +207,8 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 
 ### `app/actions/club-report-actions.ts`
 - `createMonthlyReport(formData)` — create/update monthly report
+- `saveClubActivity(formData)` — create/update club activity entry
+- `deleteClubActivity(formData)` — delete club activity entry
 - `getDirectorReportsDashboardData(clubIdOverride?)` — director view
 - `getAdminReportsData(sortBy, direction)` — admin view
 
@@ -196,7 +225,7 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 
 ### `app/actions/teacher-actions.ts`
 - `updateClassAttendance(input)` — mark attendance
-- `updateClassAttendanceForOffering(input)` — mark for offering
+- `bulkUpdateClassAttendance(input)` — bulk attendance update
 - `signOffRequirementsForStudents(input)` — sign off completion
 
 ### `app/actions/tlt-actions.ts`
@@ -207,6 +236,14 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 
 ### `app/actions/storage-actions.ts`
 - `purgeInactiveInsuranceCards()` — cleanup orphaned files
+
+### Cross-Cutting Patterns
+- Director-scoped actions should follow `lib/club-management.ts`
+- Reporting flows should reuse `app/actions/club-report-actions.ts`
+- Event/admin creation flows should reuse `app/actions/event-admin-actions.ts`
+- Registration flows should reuse `app/actions/event-registration-actions.ts`
+- Enrollment flows should reuse `app/actions/enrollment-actions.ts`
+- Compliance flows should reuse `app/actions/compliance-actions.ts`
 
 ---
 
@@ -243,16 +280,19 @@ This is the source-of-truth reference for the CMMS codebase. All AI development 
 | i18n | Built | — | `messages/`, next-intl |
 | Rate-limited login | Built | AuthRateLimitBucket | `lib/auth-rate-limit.ts` |
 | File storage | Built | — | `app/actions/storage-actions.ts`, `app/api/secure-files/` |
-| **Club activity logging** | **Missing** | — | — |
-| **Meeting attendance tracking** | **Missing** | — | — |
-| **Report auto-fill from activities** | **Missing** | — | — |
-| **Event templates** | **Missing** | — | — |
-| **Audit logging** | **Missing** | — | — |
-| **Scheduled jobs / cron** | **Missing** | — | — |
+| Club activity logging | Built | ClubActivity | `app/actions/club-report-actions.ts`, `lib/data/club-activity.ts` |
+| Meeting attendance tracking | Partial | ClubActivity (aggregate attendance totals) | `app/director/reports/page.tsx` |
+| Report auto-fill from activities | Built | ClubActivity, MonthlyReport | `lib/club-activity.ts`, `app/actions/club-report-actions.ts` |
+| Event templates | Built | EventTemplate | `app/actions/event-admin-actions.ts`, `lib/event-templates.ts` |
+| Camporee module registration | Built | EventFormField, EventRegistration, EventFormResponse | `app/director/events/[eventId]/_components/registration-form-fulfiller.tsx` |
+| Camporee scoring | Built | CamporeeScore | `app/actions/camporee-actions.ts`, `app/admin/events/[eventId]/camporee/page.tsx` |
+| Honors UI enhancements | Built | EventClassOffering, ClassEnrollment | `app/actions/enrollment-actions.ts`, `app/actions/teacher-actions.ts` |
+| Audit logging | Built | AuditLog | `lib/audit-log.ts`, `app/admin/audit/page.tsx` |
+| Scheduled jobs / cron | Built | ScheduledJobRun | `lib/scheduled-jobs.ts`, `app/api/jobs/run/route.ts` |
 | **Payment processor integration** | **Missing** | — | — |
 | **Error monitoring (Sentry etc.)** | **Missing** | — | — |
 | **Background check expiration tracking** | **Missing** | — | — |
-| **Compliance dashboard (visual)** | **Partial** | ComplianceSyncRun | `app/admin/compliance/page.tsx` (sync UI only, no visual dashboard) |
+| Compliance dashboard (visual) | Built | ComplianceSyncRun | `app/admin/compliance/page.tsx`, `lib/compliance-dashboard.ts` |
 | **Admin analytics dashboard** | **Partial** | — | `app/admin/dashboard/page.tsx` (basic stats only) |
 
 ---
@@ -283,6 +323,7 @@ Sensitive fields (medicalFlags, dietaryRestrictions, insurance, lastTetanusDate)
 ### 5.6 Dynamic Form Field System
 - 10 field types including FIELD_GROUP for hierarchical grouping
 - Two scopes: GLOBAL (one answer per registration) and ATTENDEE (one answer per attendee)
+- Field `options` also support conditional visibility rules for guided module-based registration flows
 - Completeness checking via `getMissingRequiredFieldLabels()` in `lib/event-form-completeness.ts`
 
 ### 5.7 Server Action Pattern
@@ -317,14 +358,29 @@ export async function myAction(input) {
 | `auth-rate-limit.integration.test.ts` | Rate limit persistence | Integration |
 | `class-model.test.ts` | Seat calculation, enrollment conflict detection | Unit |
 | `class-enrollment.integration.test.ts` | Live capacity enforcement | Integration |
+| `club-activity.test.ts` | Activity auto-fill calculations | Unit |
+| `club-activity.integration.test.ts` | Activity/report persistence | Integration |
 | `compliance-sync.test.ts` | CSV parsing, row matching | Unit |
+| `compliance-dashboard.test.ts` | Derived compliance dashboard summaries | Unit |
 | `compliance.integration.test.ts` | Full compliance sync workflow | Integration |
+| `director-dashboard-health.test.ts` | Derived readiness cards | Unit |
 | `event-form-completeness.test.ts` | Required field validation logic | Unit |
+| `event-form-config.test.ts` | Conditional visibility configuration | Unit |
 | `event-form-responses.test.ts` | Form response parsing, value checking | Unit |
+| `event-templates.test.ts` | Template snapshot and validation | Unit |
+| `event-templates.integration.test.ts` | Template-to-event creation flow | Integration |
+| `camporee.test.ts` | Camporee standings logic | Unit |
+| `camporee.integration.test.ts` | Camporee scoring snapshot | Integration |
+| `honors-ui.test.ts` | Honors filtering and bulk-selection helpers | Unit |
+| `honors-bulk.integration.test.ts` | Bulk honors enrollment behavior | Integration |
+| `audit-log.test.ts` | Audit metadata sanitization | Unit |
 | `medical-data.test.ts` | Encryption/decryption utilities | Unit |
 | `registration-lifecycle.test.ts` | Registration window state machine | Unit |
 | `registration.integration.test.ts` | Registration submission end-to-end | Integration |
 | `checkin.integration.test.ts` | Check-in approval workflow | Integration |
+| `scheduled-jobs.test.ts` | Scheduled-job auth and parsing | Unit |
+| `scheduled-jobs.integration.test.ts` | Scheduled-job idempotency | Integration |
+| `required-migrations.test.ts` | Startup migration list parity | Unit |
 | `student-portal-links.test.ts` | User-to-roster-member linking logic | Unit |
 | `student-portal.test.ts` | Portal visibility rules | Unit |
 | `student-portal-link.integration.test.ts` | Link creation and access | Integration |
@@ -343,6 +399,7 @@ export async function myAction(input) {
 | `/admin/events` | Event list |
 | `/admin/events/new` | Create event + dynamic form builder |
 | `/admin/events/[eventId]` | Event overview |
+| `/admin/events/[eventId]/camporee` | Camporee scoring over existing registrations |
 | `/admin/events/[eventId]/edit` | Edit event + dynamic fields |
 | `/admin/events/[eventId]/classes` | Class offerings, teacher assignment |
 | `/admin/events/[eventId]/checkin` | Check-in / registration approval |
@@ -355,16 +412,17 @@ export async function myAction(input) {
 | `/admin/users` | User management, portal links |
 | `/admin/nominations` | Award nominations review |
 | `/admin/compliance` | Sterling CSV sync workflow |
+| `/admin/audit` | Audit log review |
 | `/admin/reports` | Conference-wide report view |
 | `/admin/storage` | Secure file management |
 
 ### Director (`/director`) — CLUB_DIRECTOR only
 | Route | Purpose |
 |---|---|
-| `/director/dashboard` | Club dashboard, event shortcuts |
+| `/director/dashboard` | Club dashboard, readiness, compliance, and activity health |
 | `/director/roster` | Member management, yearly rollover |
 | `/director/events` | Available events |
-| `/director/events/[eventId]` | Registration form (attendees + fields) |
+| `/director/events/[eventId]` | Registration form with grouped sections and Camporee summary |
 | `/director/events/[eventId]/classes` | Class assignment board |
 | `/director/nominations` | Submit nominations |
 | `/director/tlt` | TLT application list |
@@ -388,6 +446,13 @@ export async function myAction(input) {
 |---|---|
 | `/login` | Login form |
 | `/recommendation/[token]` | TLT recommendation submission |
+
+### API
+| Route | Purpose |
+|---|---|
+| `/api/events/[eventId]/export/[clubId]` | Registration PDF export |
+| `/api/secure-files/[filename]` | Authorized private-file access |
+| `/api/jobs/run` | Authorized scheduled-job execution |
 
 ---
 
@@ -414,3 +479,17 @@ export async function myAction(input) {
 | Test | `npm test` | Run all tests |
 | Verify | `npm run verify` | typecheck + lint + test + build |
 | Startup check | `npm run check:startup` | Production readiness |
+| Scheduled jobs | `npm run schedule:jobs` | Manual scheduled-job runner |
+| AI phase helper | `bash scripts/ai/run-phase.sh <task>` | Print phase workflow context |
+| AI verify helper | `bash scripts/ai/verify-phase.sh` | Phase verification wrapper |
+| AI summarize helper | `bash scripts/ai/summarize-phase.sh` | Diff summary + checklist |
+
+---
+
+## 10. Workflow Documents
+
+- `docs/revised-build-plan.md` — phased delivery sequence
+- `docs/build-plan-review.md` — audit context for extension-over-rebuild planning
+- `docs/ai-development-prompts.md` — Codex prompting guardrails
+- `docs/AI-WORKFLOW.md` — planner workflow and required human review
+- `docs/SCHEDULED-JOBS.md` — Phase 8 runtime and deployment guidance

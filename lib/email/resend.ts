@@ -16,6 +16,13 @@ type SendAccountCredentialInput = {
   loginUrl: string;
 };
 
+type SendDirectorReadinessReminderInput = {
+  to: string;
+  clubName: string;
+  monthLabel: string;
+  items: string[];
+};
+
 function normalizeEnvValue(value: string | undefined) {
   if (!value) {
     return null;
@@ -118,6 +125,48 @@ export async function sendAccountCredentialEmail(input: SendAccountCredentialInp
     return {
       sent: false,
       error: `Failed to send credential email: ${response.status} ${payload}`.slice(0, 500),
+    };
+  }
+
+  return {
+    sent: true,
+    error: null,
+  };
+}
+
+export async function sendDirectorReadinessReminderEmail(input: SendDirectorReadinessReminderInput) {
+  const config = getResendConfig();
+
+  if (!config) {
+    return {
+      sent: false,
+      error: "RESEND_API_KEY or RESEND_FROM_EMAIL is not configured.",
+    };
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: [input.to],
+      subject: `${input.clubName} readiness reminder`,
+      html: `
+        <h1>${input.clubName} readiness reminder</h1>
+        <p>Here are the current items needing attention for ${input.monthLabel}:</p>
+        <ul>${input.items.map((item) => `<li>${item}</li>`).join("")}</ul>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    return {
+      sent: false,
+      error: `Failed to send readiness reminder email: ${response.status} ${payload}`.slice(0, 500),
     };
   }
 

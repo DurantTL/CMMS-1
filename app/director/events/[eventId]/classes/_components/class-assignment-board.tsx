@@ -1,9 +1,15 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { type MemberRole } from "@prisma/client";
 
-import { enrollAttendeeInClass, removeAttendeeFromClass } from "../../../../../actions/enrollment-actions";
+import {
+  bulkEnrollAttendeesInClass,
+  bulkRemoveAttendeesFromClass,
+  enrollAttendeeInClass,
+  removeAttendeeFromClass,
+} from "../../../../../actions/enrollment-actions";
 import {
   CLASS_ASSIGNMENT_POLICY,
   getSeatsLeft,
@@ -14,6 +20,12 @@ import {
   requirementToBadgeLabel,
   type RequirementInput,
 } from "../../../../../../lib/class-prerequisite-utils";
+import {
+  filterClassAssignmentAttendees,
+  filterOfferings,
+  getAssignableSelectedAttendeeIds,
+  getRemovableSelectedAttendeeIds,
+} from "../../../../../../lib/honors-ui";
 
 type Attendee = {
   id: string;
@@ -73,7 +85,13 @@ function formatAssignmentCount(count: number) {
 }
 
 export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offerings }: ClassAssignmentBoardProps) {
+  const router = useRouter();
   const [selectedAttendeeId, setSelectedAttendeeId] = useState<string>(attendees[0]?.id ?? "");
+  const [selectedIds, setSelectedIds] = useState<string[]>(attendees[0] ? [attendees[0].id] : []);
+  const [attendeeSearch, setAttendeeSearch] = useState("");
+  const [attendeeStatus, setAttendeeStatus] = useState<"all" | "assigned" | "unassigned">("all");
+  const [offeringSearch, setOfferingSearch] = useState("");
+  const [offeringAvailability, setOfferingAvailability] = useState<"all" | "open" | "full">("all");
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -141,33 +159,105 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
     [attendees, selectedAttendeeId],
   );
 
+  const visibleAttendees = useMemo(
+    () => filterClassAssignmentAttendees(attendees, attendeeSearch, attendeeStatus),
+    [attendees, attendeeSearch, attendeeStatus],
+  );
+
+  const visibleOfferings = useMemo(
+    () => filterOfferings(offerings, offeringSearch, offeringAvailability),
+    [offerings, offeringSearch, offeringAvailability],
+  );
+
+  const visibleSelectedIds = selectedIds.filter((id) => visibleAttendees.some((attendee) => attendee.id === id));
+
+  function toggleSelected(rosterMemberId: string) {
+    setSelectedIds((current) =>
+      current.includes(rosterMemberId)
+        ? current.filter((id) => id !== rosterMemberId)
+        : [...current, rosterMemberId],
+    );
+  }
+
   return (
     <section className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
       <aside className="glass-sidebar space-y-3">
         <h2 className="section-title">Registered Attendees</h2>
-        <p className="text-xs text-slate-600">Choose an attendee, then enroll them into available classes.</p>
+        <p className="text-xs text-slate-600">Choose an attendee for detail actions, or select multiple attendees for bulk assignment.</p>
+
+        <div className="space-y-2">
+          <input
+            type="search"
+            value={attendeeSearch}
+            onChange={(event) => setAttendeeSearch(event.currentTarget.value)}
+            placeholder="Search attendees"
+            className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
+          />
+          <select
+            value={attendeeStatus}
+            onChange={(event) => setAttendeeStatus(event.currentTarget.value as "all" | "assigned" | "unassigned")}
+            className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
+          >
+            <option value="all">All attendees</option>
+            <option value="unassigned">Unassigned only</option>
+            <option value="assigned">Assigned only</option>
+          </select>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl border border-white/50 bg-white/55 px-3 py-2">
+          <p className="text-xs text-slate-600">{visibleSelectedIds.length} selected</p>
+          <button
+            type="button"
+            onClick={() => {
+              const allVisibleSelected = visibleAttendees.length > 0 && visibleAttendees.every((attendee) => selectedIds.includes(attendee.id));
+              setSelectedIds((current) =>
+                allVisibleSelected
+                  ? current.filter((id) => !visibleAttendees.some((attendee) => attendee.id === id))
+                  : Array.from(new Set([...current, ...visibleAttendees.map((attendee) => attendee.id)])),
+              );
+            }}
+            className="text-xs font-semibold text-indigo-700"
+          >
+            Select visible
+          </button>
+        </div>
 
         <div className="max-h-[70vh] space-y-2 overflow-y-auto pr-1">
-          {attendees.map((attendee) => {
+          {visibleAttendees.map((attendee) => {
             const isSelected = attendee.id === selectedAttendeeId;
             const enrolledCount = optimisticState.attendeeEnrollmentsById[attendee.id]?.length ?? 0;
 
             return (
-              <button
+              <div
                 key={attendee.id}
-                type="button"
-                onClick={() => setSelectedAttendeeId(attendee.id)}
                 className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
                   isSelected
                     ? "border-indigo-300 bg-indigo-50/70 text-indigo-900"
                     : "border-white/50 bg-white/55 text-slate-700 hover:bg-white/75"
                 }`}
               >
-                <p className="text-sm font-semibold">{fullName(attendee)}</p>
-                <p className="text-xs text-slate-500">
-                  {attendee.memberRole} • Age {attendee.ageAtStart ?? "N/A"} • {formatAssignmentCount(enrolledCount)}
-                </p>
-              </button>
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(attendee.id)}
+                    onChange={() => toggleSelected(attendee.id)}
+                    className="mt-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAttendeeId(attendee.id);
+                      setSelectedIds((current) => (current.includes(attendee.id) ? current : [...current, attendee.id]));
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="text-sm font-semibold">{fullName(attendee)}</p>
+                    <p className="text-xs text-slate-500">
+                      {attendee.memberRole} • Age {attendee.ageAtStart ?? "N/A"} • {formatAssignmentCount(enrolledCount)}
+                    </p>
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -182,6 +272,24 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
               : "Select an attendee to start assigning classes."}
           </p>
           <p className="mt-1 text-xs font-medium text-slate-500">{CLASS_ASSIGNMENT_POLICY}</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <input
+              type="search"
+              value={offeringSearch}
+              onChange={(event) => setOfferingSearch(event.currentTarget.value)}
+              placeholder="Search honors/classes"
+              className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
+            />
+            <select
+              value={offeringAvailability}
+              onChange={(event) => setOfferingAvailability(event.currentTarget.value as "all" | "open" | "full")}
+              className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
+            >
+              <option value="all">All offerings</option>
+              <option value="open">Open seats</option>
+              <option value="full">Full offerings</option>
+            </select>
+          </div>
           {errorMessage ? (
             <p className="alert-danger mt-4">{errorMessage}</p>
           ) : null}
@@ -189,7 +297,7 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
 
         <article className="glass-panel">
           <div className="grid gap-3 xl:grid-cols-2">
-            {offerings.map((offering) => {
+            {visibleOfferings.map((offering) => {
               const enrolledCount =
                 optimisticState.enrolledCountsByOfferingId[offering.id] ?? offering.enrolledCount;
               const seatsLeft = getSeatsLeft(offering.capacity, enrolledCount);
@@ -254,6 +362,32 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                     ) : null}
                   </div>
 
+                  <div className="mt-3 text-xs text-slate-500">
+                    {(() => {
+                      const assignableSelectedIds = getAssignableSelectedAttendeeIds(
+                        attendees.map((attendee) => ({
+                          ...attendee,
+                          enrolledOfferingIds: optimisticState.attendeeEnrollmentsById[attendee.id] ?? attendee.enrolledOfferingIds,
+                        })),
+                        selectedIds,
+                        {
+                          ...offering,
+                          enrolledCount,
+                        },
+                      );
+                      const removableSelectedIds = getRemovableSelectedAttendeeIds(
+                        attendees.map((attendee) => ({
+                          ...attendee,
+                          enrolledOfferingIds: optimisticState.attendeeEnrollmentsById[attendee.id] ?? attendee.enrolledOfferingIds,
+                        })),
+                        selectedIds,
+                        offering.id,
+                      );
+
+                      return `${assignableSelectedIds.length} selected assignable • ${removableSelectedIds.length} selected removable`;
+                    })()}
+                  </div>
+
                   <div className="mt-4">
                     <button
                       type="button"
@@ -285,6 +419,7 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                               eventClassOfferingId: offering.id,
                               clubId: managedClubId,
                             });
+                            router.refresh();
                           } catch (error) {
                             const message =
                               error instanceof Error ? error.message : "Unable to enroll attendee.";
@@ -321,6 +456,7 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                                 eventClassOfferingId: offering.id,
                                 clubId: managedClubId,
                               });
+                              router.refresh();
                             } catch (error) {
                               const message =
                                 error instanceof Error ? error.message : "Unable to remove enrollment.";
@@ -333,6 +469,122 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                         Remove
                       </button>
                     ) : null}
+
+                    <button
+                      type="button"
+                      disabled={
+                        isPending ||
+                        getAssignableSelectedAttendeeIds(
+                          attendees.map((attendee) => ({
+                            ...attendee,
+                            enrolledOfferingIds: optimisticState.attendeeEnrollmentsById[attendee.id] ?? attendee.enrolledOfferingIds,
+                          })),
+                          selectedIds,
+                          {
+                            ...offering,
+                            enrolledCount,
+                          },
+                        ).length === 0
+                      }
+                      onClick={() => {
+                        const assignableIds = getAssignableSelectedAttendeeIds(
+                          attendees.map((attendee) => ({
+                            ...attendee,
+                            enrolledOfferingIds: optimisticState.attendeeEnrollmentsById[attendee.id] ?? attendee.enrolledOfferingIds,
+                          })),
+                          selectedIds,
+                          {
+                            ...offering,
+                            enrolledCount,
+                          },
+                        );
+
+                        if (assignableIds.length === 0) {
+                          return;
+                        }
+
+                        setErrorMessage(null);
+                        for (const attendeeId of assignableIds) {
+                          addOptimisticEnrollment({
+                            kind: "enroll",
+                            attendeeId,
+                            offeringId: offering.id,
+                          });
+                        }
+
+                        startTransition(async () => {
+                          try {
+                            await bulkEnrollAttendeesInClass({
+                              eventId,
+                              rosterMemberIds: assignableIds,
+                              eventClassOfferingId: offering.id,
+                              clubId: managedClubId,
+                            });
+                            router.refresh();
+                          } catch (error) {
+                            setErrorMessage(error instanceof Error ? error.message : "Unable to bulk enroll attendees.");
+                          }
+                        });
+                      }}
+                      className="btn-secondary ml-2 px-3 py-2"
+                    >
+                      Bulk Enroll
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        isPending ||
+                        getRemovableSelectedAttendeeIds(
+                          attendees.map((attendee) => ({
+                            ...attendee,
+                            enrolledOfferingIds: optimisticState.attendeeEnrollmentsById[attendee.id] ?? attendee.enrolledOfferingIds,
+                          })),
+                          selectedIds,
+                          offering.id,
+                        ).length === 0
+                      }
+                      onClick={() => {
+                        const removableIds = getRemovableSelectedAttendeeIds(
+                          attendees.map((attendee) => ({
+                            ...attendee,
+                            enrolledOfferingIds: optimisticState.attendeeEnrollmentsById[attendee.id] ?? attendee.enrolledOfferingIds,
+                          })),
+                          selectedIds,
+                          offering.id,
+                        );
+
+                        if (removableIds.length === 0) {
+                          return;
+                        }
+
+                        setErrorMessage(null);
+                        for (const attendeeId of removableIds) {
+                          addOptimisticEnrollment({
+                            kind: "remove",
+                            attendeeId,
+                            offeringId: offering.id,
+                          });
+                        }
+
+                        startTransition(async () => {
+                          try {
+                            await bulkRemoveAttendeesFromClass({
+                              eventId,
+                              rosterMemberIds: removableIds,
+                              eventClassOfferingId: offering.id,
+                              clubId: managedClubId,
+                            });
+                            router.refresh();
+                          } catch (error) {
+                            setErrorMessage(error instanceof Error ? error.message : "Unable to bulk remove attendees.");
+                          }
+                        });
+                      }}
+                      className="btn-secondary ml-2 px-3 py-2"
+                    >
+                      Bulk Remove
+                    </button>
                   </div>
                 </div>
               );
