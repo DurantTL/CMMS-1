@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
+import { safeWriteAuditLog } from "../../lib/audit-log";
+import { parseMonthInput } from "../../lib/club-activity";
 import { getManagedClubContext } from "../../lib/club-management";
+import { getClubActivityMonthSnapshot, findRosterYearForClubDate } from "../../lib/data/club-activity";
 import { readManagedClubId } from "../../lib/director-path";
 import { prisma } from "../../lib/prisma";
 
@@ -41,6 +44,27 @@ function requireMonthStart(value: FormDataEntryValue | null) {
   }
 
   return parsedDate;
+}
+
+function requireDate(value: FormDataEntryValue | null, label: string) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${label} is required.`);
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error(`${label} is invalid.`);
+  }
+
+  return parsedDate;
+}
+
+function requireText(value: FormDataEntryValue | null, label: string) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${label} is required.`);
+  }
+
+  return value.trim();
 }
 
 function ensureRole(session: Session | null, role: UserRole, message: string) {
@@ -120,15 +144,134 @@ export async function createMonthlyReport(formData: FormData) {
     },
   });
 
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "monthly_report.submit",
+    targetType: "MonthlyReport",
+    targetId: `${clubId}:${reportMonth.toISOString()}`,
+    clubId,
+    summary: `Submitted monthly report for ${reportMonth.toISOString().slice(0, 7)}.`,
+    metadata: {
+      meetingCount,
+      averagePathfinderAttendance,
+      averageStaffAttendance,
+      uniformCompliance,
+      pointsCalculated,
+    },
+  });
+
   revalidatePath("/director/reports");
+  revalidatePath("/director/dashboard");
   revalidatePath("/admin/reports");
 }
 
-export async function getDirectorReportsDashboardData(clubIdOverride?: string | null) {
+export async function saveClubActivity(formData: FormData) {
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const activityIdValue = formData.get("activityId");
+  const activityId = typeof activityIdValue === "string" && activityIdValue.trim().length > 0 ? activityIdValue.trim() : null;
+  const activityDate = requireDate(formData.get("activityDate"), "Activity date");
+  const title = requireText(formData.get("title"), "Activity title");
+  const pathfinderAttendance = requireNumber(formData.get("pathfinderAttendance"), "Pathfinder attendance");
+  const staffAttendance = requireNumber(formData.get("staffAttendance"), "Staff attendance");
+  const uniformCompliance = requireNumber(formData.get("uniformCompliance"), "Uniform compliance");
+  const notesValue = formData.get("notes");
+  const notes = typeof notesValue === "string" && notesValue.trim().length > 0 ? notesValue.trim() : null;
+
+  if (uniformCompliance > 100) {
+    throw new Error("Uniform compliance must be between 0 and 100.");
+  }
+
+  const rosterYear = await findRosterYearForClubDate(managedClub.clubId, activityDate);
+
+  if (!rosterYear) {
+    throw new Error("No roster year covers the selected activity date.");
+  }
+
+  if (activityId) {
+    const existingActivity = await prisma.clubActivity.findFirst({
+      where: {
+        id: activityId,
+        clubRosterYear: {
+          clubId: managedClub.clubId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existingActivity) {
+      throw new Error("Activity not found for this club.");
+    }
+
+    await prisma.clubActivity.update({
+      where: {
+        id: activityId,
+      },
+      data: {
+        clubRosterYearId: rosterYear.id,
+        activityDate,
+        title,
+        pathfinderAttendance,
+        staffAttendance,
+        uniformCompliance,
+        notes,
+      },
+    });
+  } else {
+    await prisma.clubActivity.create({
+      data: {
+        clubRosterYearId: rosterYear.id,
+        activityDate,
+        title,
+        pathfinderAttendance,
+        staffAttendance,
+        uniformCompliance,
+        notes,
+      },
+    });
+  }
+
+  revalidatePath("/director/reports");
+  revalidatePath("/director/dashboard");
+}
+
+export async function deleteClubActivity(formData: FormData) {
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const activityId = requireText(formData.get("activityId"), "Activity");
+
+  const existingActivity = await prisma.clubActivity.findFirst({
+    where: {
+      id: activityId,
+      clubRosterYear: {
+        clubId: managedClub.clubId,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existingActivity) {
+    throw new Error("Activity not found for this club.");
+  }
+
+  await prisma.clubActivity.delete({
+    where: {
+      id: activityId,
+    },
+  });
+
+  revalidatePath("/director/reports");
+  revalidatePath("/director/dashboard");
+}
+
+export async function getDirectorReportsDashboardData(clubIdOverride?: string | null, monthInput?: string | null) {
   const managedClub = await getManagedClubContext(clubIdOverride);
   const clubId = managedClub.clubId;
+  const selectedMonth = parseMonthInput(monthInput);
 
-  const [club, recentReports] = await Promise.all([
+  const [club, recentReports, monthSnapshot] = await Promise.all([
     prisma.club.findUnique({
       where: {
         id: clubId,
@@ -146,11 +289,19 @@ export async function getDirectorReportsDashboardData(clubIdOverride?: string | 
       },
       take: 6,
     }),
+    getClubActivityMonthSnapshot(clubId, selectedMonth),
   ]);
 
   return {
     clubName: club?.name ?? "Your Club",
     recentReports,
+    selectedMonthInput: monthSnapshot.selectedMonthInput,
+    selectedMonth: selectedMonth,
+    selectedRosterYear: monthSnapshot.rosterYear,
+    selectedMonthActivities: monthSnapshot.activities,
+    selectedMonthAutoFill: monthSnapshot.autoFill,
+    selectedMonthExistingReport: monthSnapshot.existingReport,
+    selectedMonthFormValues: monthSnapshot.formValues,
     rubric: {
       pointsPerMeeting: POINTS_PER_MEETING,
       pointsPerPathfinderAttendance: POINTS_PER_PATHFINDER_ATTENDEE,

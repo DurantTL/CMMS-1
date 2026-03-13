@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import {
+  bulkUpdateClassAttendance,
   signOffRequirementsForStudents,
   updateClassAttendance,
 } from "../../../../actions/teacher-actions";
@@ -22,9 +24,12 @@ type ClassRosterManagerProps = {
 };
 
 export function ClassRosterManager({ offeringId, honorCode, students }: ClassRosterManagerProps) {
+  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "present" | "absent" | "completed" | "pending">("all");
   const [notes, setNotes] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -33,6 +38,26 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
     () => students.filter((student) => !student.alreadyCompleted).length,
     [students],
   );
+
+  const visibleStudents = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return students.filter((student) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        student.name.toLowerCase().includes(normalizedSearch) ||
+        student.memberRole.toLowerCase().includes(normalizedSearch);
+
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "present" && student.attendedAt !== null) ||
+        (filter === "absent" && student.attendedAt === null) ||
+        (filter === "completed" && student.alreadyCompleted) ||
+        (filter === "pending" && !student.alreadyCompleted);
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [filter, search, students]);
 
   function toggleSelected(rosterMemberId: string) {
     setSelectedIds((current) =>
@@ -51,6 +76,41 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
       ) : null}
 
       <div className="glass-table table-shell overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3">
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.currentTarget.value)}
+            placeholder="Search students"
+            className="min-w-[220px] rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          <select
+            value={filter}
+            onChange={(event) => setFilter(event.currentTarget.value as typeof filter)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="all">All students</option>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending sign-off</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              const visibleIds = visibleStudents.map((student) => student.rosterMemberId);
+              const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+              setSelectedIds((current) =>
+                allVisibleSelected
+                  ? current.filter((id) => !visibleIds.includes(id))
+                  : Array.from(new Set([...current, ...visibleIds])),
+              );
+            }}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+          >
+            Select visible
+          </button>
+        </div>
         <table>
           <thead>
             <tr>
@@ -69,7 +129,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
             </tr>
           </thead>
           <tbody>
-            {students.map((student) => (
+            {visibleStudents.map((student) => (
               <tr key={student.rosterMemberId}>
                 <td className="px-4 py-3 text-sm font-medium text-slate-800">{student.name}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">{student.memberRole}</td>
@@ -86,6 +146,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
                             rosterMemberId: student.rosterMemberId,
                             attended: !student.attendedAt,
                           });
+                          router.refresh();
                         } catch (error) {
                           setErrorMessage(
                             error instanceof Error ? error.message : "Unable to update attendance.",
@@ -129,14 +190,60 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
         <p className="text-sm text-slate-600">
           {signOffEligibleCount} student(s) still need this requirement completed.
         </p>
-        <button
-          type="button"
-          disabled={selectedCount === 0}
-          onClick={() => setModalOpen(true)}
-          className="btn-primary"
-        >
-          Sign Off Requirements ({selectedCount})
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={selectedCount === 0}
+            onClick={() => {
+              setErrorMessage(null);
+              startTransition(async () => {
+                try {
+                  await bulkUpdateClassAttendance({
+                    offeringId,
+                    rosterMemberIds: selectedIds,
+                    attended: true,
+                  });
+                  router.refresh();
+                } catch (error) {
+                  setErrorMessage(error instanceof Error ? error.message : "Unable to mark attendance.");
+                }
+              });
+            }}
+            className="btn-secondary"
+          >
+            Mark Selected Present
+          </button>
+          <button
+            type="button"
+            disabled={selectedCount === 0}
+            onClick={() => {
+              setErrorMessage(null);
+              startTransition(async () => {
+                try {
+                  await bulkUpdateClassAttendance({
+                    offeringId,
+                    rosterMemberIds: selectedIds,
+                    attended: false,
+                  });
+                  router.refresh();
+                } catch (error) {
+                  setErrorMessage(error instanceof Error ? error.message : "Unable to clear attendance.");
+                }
+              });
+            }}
+            className="btn-secondary"
+          >
+            Mark Selected Absent
+          </button>
+          <button
+            type="button"
+            disabled={selectedCount === 0}
+            onClick={() => setModalOpen(true)}
+            className="btn-primary"
+          >
+            Sign Off Requirements ({selectedCount})
+          </button>
+        </div>
       </div>
 
       {modalOpen ? (
@@ -189,6 +296,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
                         rosterMemberIds: selectedIds,
                         notes,
                       });
+                      router.refresh();
                       setSelectedIds([]);
                       setNotes("");
                       setModalOpen(false);

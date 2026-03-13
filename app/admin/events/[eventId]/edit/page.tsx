@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { readEventFieldConfig } from "../../../../../lib/event-form-config";
 import { prisma } from "../../../../../lib/prisma";
 import { type DynamicFieldDraft } from "../../new/_components/dynamic-form-builder";
 import { EventDynamicFieldsEditor } from "./_components/event-dynamic-fields-editor";
@@ -14,14 +15,6 @@ type EditEventPageProps = {
 
 function toDatetimeLocalValue(date: Date) {
   return date.toISOString().slice(0, 16);
-}
-
-function parseDraftOptions(input: unknown) {
-  if (!Array.isArray(input)) {
-    return [];
-  }
-
-  return input.filter((option): option is string => typeof option === "string");
 }
 
 export default async function EditEventPage({ params }: EditEventPageProps) {
@@ -68,17 +61,24 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     notFound();
   }
 
-  const initialDynamicFields: DynamicFieldDraft[] = event.dynamicFields.map((field) => ({
-    id: field.id,
-    parentFieldId: field.parentFieldId,
-    key: field.key,
-    label: field.label,
-    description: field.description ?? "",
-    type: field.type,
-    fieldScope: field.fieldScope,
-    isRequired: field.isRequired,
-    options: parseDraftOptions(field.options),
-  }));
+  const initialDynamicFields: DynamicFieldDraft[] = event.dynamicFields.map((field) => {
+    const config = readEventFieldConfig(field.options);
+
+    return {
+      id: field.id,
+      parentFieldId: field.parentFieldId,
+      key: field.key,
+      label: field.label,
+      description: field.description ?? "",
+      type: field.type,
+      fieldScope: field.fieldScope,
+      isRequired: field.isRequired,
+      options: config.optionValues,
+      conditionalFieldKey: config.conditional?.fieldKey ?? "",
+      conditionalOperator: config.conditional?.operator ?? "",
+      conditionalValue: config.conditional?.value ?? "",
+    };
+  });
 
   const hasResponses = await prisma.eventFormResponse.count({
     where: {

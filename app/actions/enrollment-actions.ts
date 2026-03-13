@@ -8,6 +8,7 @@ import {
   formatEnrollmentConflictMessage,
   isOfferingFull,
 } from "../../lib/class-model";
+import { safeWriteAuditLog } from "../../lib/audit-log";
 import { getManagedClubContext } from "../../lib/club-management";
 import { prisma } from "../../lib/prisma";
 import {
@@ -18,6 +19,13 @@ import {
 type EnrollAttendeeInput = {
   eventId: string;
   rosterMemberId: string;
+  eventClassOfferingId: string;
+  clubId?: string | null;
+};
+
+type BulkEnrollAttendeesInput = {
+  eventId: string;
+  rosterMemberIds: string[];
   eventClassOfferingId: string;
   clubId?: string | null;
 };
@@ -72,9 +80,12 @@ function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim().toUpperCase() : null;
 }
 
-async function getDirectorClubIdForEnrollment(clubIdOverride?: string | null) {
-  const managedClub = await getManagedClubContext(clubIdOverride);
-  return managedClub.clubId;
+function summarizeBulkNames(names: string[]) {
+  if (names.length <= 3) {
+    return names.join(", ");
+  }
+
+  return `${names.slice(0, 3).join(", ")} and ${names.length - 3} more`;
 }
 
 async function runSerializableEnrollmentTransaction<T>(
@@ -107,7 +118,7 @@ async function runSerializableEnrollmentTransaction<T>(
   throw lastError instanceof Error ? lastError : new Error("Unable to complete class enrollment.");
 }
 
-export async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubId: string }) {
+async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubId: string }) {
   if (!input.eventId || !input.rosterMemberId || !input.eventClassOfferingId || !input.clubId) {
     throw new Error("Event, attendee, and class offering are required.");
   }
@@ -280,14 +291,27 @@ export async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & 
 }
 
 export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
-  const clubId = await getDirectorClubIdForEnrollment(input.clubId ?? null);
+  const managedClub = await getManagedClubContext(input.clubId ?? null);
+  const clubId = managedClub.clubId;
   await enrollAttendeeInClassForClub({
     ...input,
     clubId,
   });
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "enrollment.add",
+    targetType: "ClassEnrollment",
+    targetId: `${input.eventClassOfferingId}:${input.rosterMemberId}`,
+    clubId,
+    summary: `Enrolled attendee ${input.rosterMemberId} in offering ${input.eventClassOfferingId}.`,
+    metadata: {
+      eventId: input.eventId,
+    },
+  });
 }
 
-export async function removeAttendeeFromClassForClub(input: EnrollAttendeeInput & { clubId: string }) {
+async function removeAttendeeFromClassForClub(input: EnrollAttendeeInput & { clubId: string }) {
   if (!input.eventId || !input.rosterMemberId || !input.eventClassOfferingId || !input.clubId) {
     throw new Error("Event, attendee, and class offering are required.");
   }
@@ -336,9 +360,265 @@ export async function removeAttendeeFromClassForClub(input: EnrollAttendeeInput 
 }
 
 export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
-  const clubId = await getDirectorClubIdForEnrollment(input.clubId ?? null);
+  const managedClub = await getManagedClubContext(input.clubId ?? null);
+  const clubId = managedClub.clubId;
   await removeAttendeeFromClassForClub({
     ...input,
     clubId,
+  });
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "enrollment.remove",
+    targetType: "ClassEnrollment",
+    targetId: `${input.eventClassOfferingId}:${input.rosterMemberId}`,
+    clubId,
+    summary: `Removed attendee ${input.rosterMemberId} from offering ${input.eventClassOfferingId}.`,
+    metadata: {
+      eventId: input.eventId,
+    },
+  });
+}
+
+export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput) {
+  const managedClub = await getManagedClubContext(input.clubId ?? null);
+  const clubId = managedClub.clubId;
+  const rosterMemberIds = Array.from(new Set(input.rosterMemberIds.filter((id) => id.trim().length > 0)));
+
+  if (rosterMemberIds.length === 0) {
+    throw new Error("Select at least one attendee to enroll.");
+  }
+
+  await runSerializableEnrollmentTransaction(async (tx) => {
+    const offering = await tx.eventClassOffering.findFirst({
+      where: {
+        id: input.eventClassOfferingId,
+        eventId: input.eventId,
+      },
+      select: {
+        id: true,
+        capacity: true,
+        classCatalog: {
+          select: {
+            title: true,
+            code: true,
+            requirements: {
+              select: {
+                requirementType: true,
+                config: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!offering) {
+      throw new Error("Class offering was not found for this event.");
+    }
+
+    const attendees = await tx.rosterMember.findMany({
+      where: {
+        id: {
+          in: rosterMemberIds,
+        },
+        registrations: {
+          some: {
+            eventRegistration: {
+              eventId: input.eventId,
+              clubId,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        ageAtStart: true,
+        memberRole: true,
+        masterGuide: true,
+        completedRequirements: {
+          where: {
+            requirementType: "COMPLETED_HONOR",
+          },
+          select: {
+            metadata: true,
+          },
+        },
+        classEnrollments: {
+          where: {
+            offering: {
+              eventId: input.eventId,
+            },
+          },
+          select: {
+            eventClassOfferingId: true,
+            offering: {
+              select: {
+                classCatalog: {
+                  select: {
+                    title: true,
+                    code: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (attendees.length !== rosterMemberIds.length) {
+      throw new Error("One or more selected attendees are not registered for this event under your club.");
+    }
+
+    const toCreate: string[] = [];
+    const blockedNames: string[] = [];
+
+    for (const attendee of attendees) {
+      const completedHonorCodes = attendee.completedRequirements
+        .map((item) => readHonorCodeFromMetadata(item.metadata))
+        .filter((item): item is string => Boolean(item));
+
+      const eligibility = evaluateClassRequirements(
+        {
+          ageAtStart: attendee.ageAtStart,
+          memberRole: attendee.memberRole,
+          masterGuide: attendee.masterGuide,
+          completedHonorCodes,
+        },
+        mapRequirementsToEvaluatorInput(offering.classCatalog.requirements),
+      );
+
+      if (!eligibility.eligible) {
+        blockedNames.push(`${attendee.firstName} ${attendee.lastName}`);
+        continue;
+      }
+
+      const conflict = findEventEnrollmentConflict(
+        attendee.classEnrollments.map((enrollment) => ({
+          eventClassOfferingId: enrollment.eventClassOfferingId,
+          classTitle: enrollment.offering.classCatalog.title,
+          classCode: enrollment.offering.classCatalog.code,
+        })),
+        input.eventClassOfferingId,
+      );
+
+      if (conflict) {
+        blockedNames.push(`${attendee.firstName} ${attendee.lastName}`);
+        continue;
+      }
+
+      const alreadyEnrolled = attendee.classEnrollments.some(
+        (enrollment) => enrollment.eventClassOfferingId === input.eventClassOfferingId,
+      );
+
+      if (!alreadyEnrolled) {
+        toCreate.push(attendee.id);
+      }
+    }
+
+    if (blockedNames.length > 0) {
+      throw new Error(
+        `Bulk enrollment blocked for ${summarizeBulkNames(blockedNames)}. Remove conflicting assignments or prerequisite blockers first.`,
+      );
+    }
+
+    const enrollmentCount = await tx.classEnrollment.count({
+      where: {
+        eventClassOfferingId: input.eventClassOfferingId,
+      },
+    });
+
+    if (offering.capacity !== null) {
+      const seatsLeft = Math.max(offering.capacity - enrollmentCount, 0);
+      if (toCreate.length > seatsLeft) {
+        throw new Error(`This class only has ${seatsLeft} seat(s) left for ${toCreate.length} attendee(s).`);
+      }
+    }
+
+    if (toCreate.length > 0) {
+      await tx.classEnrollment.createMany({
+        data: toCreate.map((rosterMemberId) => ({
+          eventClassOfferingId: input.eventClassOfferingId,
+          rosterMemberId,
+        })),
+      });
+    }
+  });
+
+  revalidatePath(`/director/events/${input.eventId}/classes`);
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "enrollment.bulk_add",
+    targetType: "ClassEnrollment",
+    targetId: input.eventClassOfferingId,
+    clubId,
+    summary: `Bulk enrolled ${rosterMemberIds.length} attendee(s) in offering ${input.eventClassOfferingId}.`,
+    metadata: {
+      eventId: input.eventId,
+      rosterMemberCount: rosterMemberIds.length,
+    },
+  });
+}
+
+export async function bulkRemoveAttendeesFromClass(input: BulkEnrollAttendeesInput) {
+  const managedClub = await getManagedClubContext(input.clubId ?? null);
+  const clubId = managedClub.clubId;
+  const rosterMemberIds = Array.from(new Set(input.rosterMemberIds.filter((id) => id.trim().length > 0)));
+
+  if (rosterMemberIds.length === 0) {
+    throw new Error("Select at least one attendee to remove.");
+  }
+
+  await runSerializableEnrollmentTransaction(async (tx) => {
+    const attendees = await tx.rosterMember.findMany({
+      where: {
+        id: {
+          in: rosterMemberIds,
+        },
+        registrations: {
+          some: {
+            eventRegistration: {
+              eventId: input.eventId,
+              clubId,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (attendees.length !== rosterMemberIds.length) {
+      throw new Error("One or more selected attendees are not registered for this event under your club.");
+    }
+
+    await tx.classEnrollment.deleteMany({
+      where: {
+        eventClassOfferingId: input.eventClassOfferingId,
+        rosterMemberId: {
+          in: rosterMemberIds,
+        },
+      },
+    });
+  });
+
+  revalidatePath(`/director/events/${input.eventId}/classes`);
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "enrollment.bulk_remove",
+    targetType: "ClassEnrollment",
+    targetId: input.eventClassOfferingId,
+    clubId,
+    summary: `Bulk removed ${rosterMemberIds.length} attendee(s) from offering ${input.eventClassOfferingId}.`,
+    metadata: {
+      eventId: input.eventId,
+      rosterMemberCount: rosterMemberIds.length,
+    },
   });
 }

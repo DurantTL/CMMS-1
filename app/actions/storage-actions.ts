@@ -4,6 +4,7 @@ import { RolloverStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
+import { safeWriteAuditLog } from "../../lib/audit-log";
 import { bytesToMegabytes, deleteLocalFile } from "../../lib/local-storage";
 import { prisma } from "../../lib/prisma";
 
@@ -66,6 +67,18 @@ export async function purgeInactiveInsuranceCards(): Promise<void> {
   }
 
   const megabytesFreed = bytesToMegabytes(bytesFreed);
+
+  await safeWriteAuditLog({
+    actorUserId: session.user.id,
+    actorRole: session.user.role,
+    action: "storage.purge_insurance_cards",
+    targetType: "RosterMember",
+    summary: `Purged ${filesDeleted} inactive insurance card file(s).`,
+    metadata: {
+      filesDeleted,
+      megabytesFreed,
+    },
+  });
 
   revalidatePath("/admin/storage");
 

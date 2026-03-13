@@ -108,3 +108,55 @@ test("validates required attendee-scoped answers for every selected attendee", (
 
   assert.match(error ?? "", /Shirt Size/);
 });
+
+test("conditional hidden fields are excluded from serialization and required validation", () => {
+  const fields = [
+    {
+      id: "global-1",
+      key: "needs_power",
+      label: "Needs power",
+      description: null,
+      options: ["Yes", "No"],
+      isRequired: true,
+      fieldScope: FormFieldScope.GLOBAL,
+    },
+    {
+      id: "global-2",
+      key: "power_notes",
+      label: "Power notes",
+      description: null,
+      options: {
+        conditional: {
+          fieldKey: "needs_power",
+          operator: "equals",
+          value: "Yes",
+        },
+      },
+      isRequired: true,
+      fieldScope: FormFieldScope.GLOBAL,
+    },
+  ];
+
+  const hiddenError = validateRequiredRegistrationResponses({
+    fields: [...fields],
+    selectedAttendeeIds: ["a1"],
+    globalResponses: {
+      "global-1": "No",
+    },
+    attendeeResponses: {},
+  });
+
+  assert.equal(hiddenError, null);
+
+  const serialized = serializeRegistrationResponses({
+    fields: [...fields],
+    selectedAttendeeIds: ["a1"],
+    globalResponses: {
+      "global-1": "No",
+      "global-2": "Generator near pavilion",
+    },
+    attendeeResponses: {},
+  });
+
+  assert.deepEqual(serialized.responses, [{ fieldId: "global-1", attendeeId: null, value: "No" }]);
+});

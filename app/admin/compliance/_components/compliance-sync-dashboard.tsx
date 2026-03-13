@@ -11,7 +11,7 @@ import {
   previewSterlingBackgroundChecks,
 } from "../../../actions/compliance-actions";
 
-type RosterYearOption = {
+type RosterYearDashboardRow = {
   id: string;
   yearLabel: string;
   isActive: boolean;
@@ -19,10 +19,49 @@ type RosterYearOption = {
     name: string;
     code: string;
   };
+  compliance: {
+    adultCount: number;
+    clearedAdultCount: number;
+    unclearedAdultCount: number;
+    clearanceRate: number;
+    status: "ready" | "attention" | "empty";
+    latestRunStatus: "PREVIEW" | "APPLIED" | "NONE";
+    latestRunAt: Date | null;
+    latestAppliedAt: Date | null;
+    latestRunAmbiguousCount: number;
+    latestRunUpdateCount: number;
+  };
+};
+
+type RecentRunRow = {
+  id: string;
+  fileName: string;
+  status: "PREVIEW" | "APPLIED";
+  scope: "ROSTER_YEAR" | "SYSTEM_WIDE";
+  updateCount: number;
+  ambiguousCount: number;
+  skippedCount: number;
+  passedRows: number;
+  processedRows: number;
+  createdAt: Date;
+  appliedAt: Date | null;
+  scopeLabel: string;
 };
 
 type ComplianceSyncDashboardProps = {
-  rosterYears: RosterYearOption[];
+  dashboardData: {
+    overview: {
+      totalRuns: number;
+      previewRuns: number;
+      appliedRuns: number;
+      systemWideRuns: number;
+      rosterYearRuns: number;
+      pendingAmbiguousRows: number;
+      safeUpdatesIdentified: number;
+    };
+    rosterYearStatuses: RosterYearDashboardRow[];
+    recentRuns: RecentRunRow[];
+  };
 };
 
 function statusTextClass(status: ComplianceSyncState["status"]) {
@@ -37,7 +76,27 @@ function statusTextClass(status: ComplianceSyncState["status"]) {
   return "text-slate-600";
 }
 
-export function ComplianceSyncDashboard({ rosterYears }: ComplianceSyncDashboardProps) {
+function formatDateTime(value: Date | null) {
+  if (!value) {
+    return "—";
+  }
+
+  return value.toLocaleString();
+}
+
+function complianceTone(status: RosterYearDashboardRow["compliance"]["status"]) {
+  if (status === "ready") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+
+  if (status === "attention") {
+    return "border-amber-200 bg-amber-50 text-amber-900";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+export function ComplianceSyncDashboard({ dashboardData }: ComplianceSyncDashboardProps) {
   const [previewState, previewAction] = useFormState(
     previewSterlingBackgroundChecks,
     initialComplianceSyncState,
@@ -55,9 +114,110 @@ export function ComplianceSyncDashboard({ rosterYears }: ComplianceSyncDashboard
         <p className="hero-kicker">Super Admin Dashboard</p>
         <h1 className="hero-title mt-3">Compliance Sync Engine</h1>
         <p className="hero-copy">
-          Preview Sterling Volunteers CSV matches within a selected roster year or across the entire system before applying updates.
+          Review roster-year readiness, recent sync activity, and Sterling preview/apply results without replacing the existing sync safeguards.
         </p>
       </header>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Recent Sync Runs" value={dashboardData.overview.totalRuns} />
+        <MetricCard label="Applied Runs" value={dashboardData.overview.appliedRuns} />
+        <MetricCard label="Preview Runs" value={dashboardData.overview.previewRuns} />
+        <MetricCard label="Pending Ambiguous Rows" value={dashboardData.overview.pendingAmbiguousRows} />
+        <MetricCard label="Safe Updates Identified" value={dashboardData.overview.safeUpdatesIdentified} />
+        <MetricCard label="Roster-Year Runs" value={dashboardData.overview.rosterYearRuns} />
+        <MetricCard label="System-Wide Runs" value={dashboardData.overview.systemWideRuns} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="glass-panel">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="section-title">Roster-Year Readiness</h2>
+              <p className="section-copy">Adult clearance status by active or historical roster year.</p>
+            </div>
+            <span className="status-chip-neutral">{dashboardData.rosterYearStatuses.length} roster year(s)</span>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th className="px-4 py-3">Scope</th>
+                  <th className="px-4 py-3">Adults Cleared</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Latest Sync</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {dashboardData.rosterYearStatuses.map((row) => (
+                  <tr key={row.id} className="align-top">
+                    <td className="px-4 py-3 text-slate-900">
+                      <p className="font-semibold">{row.club.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {row.club.code} • {row.yearLabel}
+                        {row.isActive ? " • Active" : ""}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      <p className="font-semibold">
+                        {row.compliance.clearedAdultCount} / {row.compliance.adultCount}
+                      </p>
+                      <p className="text-xs text-slate-500">{row.compliance.clearanceRate}% cleared</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${complianceTone(row.compliance.status)}`}>
+                        {row.compliance.status === "ready"
+                          ? "Ready"
+                          : row.compliance.status === "attention"
+                            ? `${row.compliance.unclearedAdultCount} missing`
+                            : "No adults"}
+                      </span>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Ambiguous in latest run: {row.compliance.latestRunAmbiguousCount}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      <p>{row.compliance.latestRunStatus}</p>
+                      <p className="text-xs text-slate-500">{formatDateTime(row.compliance.latestRunAt)}</p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article className="glass-panel">
+          <h2 className="section-title">Recent Sync History</h2>
+          <p className="section-copy">Latest preview/apply runs, including scope and ambiguity counts.</p>
+
+          {dashboardData.recentRuns.length === 0 ? (
+            <p className="empty-state mt-4 text-sm text-slate-600">No compliance sync runs have been recorded yet.</p>
+          ) : (
+            <ol className="mt-4 space-y-3">
+              {dashboardData.recentRuns.map((run) => (
+                <li key={run.id} className="glass-card-soft">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{run.fileName}</p>
+                      <p className="text-xs text-slate-500">{run.scopeLabel}</p>
+                    </div>
+                    <span className="status-chip-neutral">{run.status}</span>
+                  </div>
+                  <div className="mt-2 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                    <p>Processed: {run.processedRows}</p>
+                    <p>Passed: {run.passedRows}</p>
+                    <p>Safe updates: {run.updateCount}</p>
+                    <p>Ambiguous: {run.ambiguousCount}</p>
+                    <p>Created: {formatDateTime(run.createdAt)}</p>
+                    <p>Applied: {formatDateTime(run.appliedAt)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </article>
+      </div>
 
       <form action={previewAction} className="glass-panel space-y-5">
         <label className="block space-y-1 text-sm text-slate-700">
@@ -68,10 +228,8 @@ export function ComplianceSyncDashboard({ rosterYears }: ComplianceSyncDashboard
             defaultValue="SYSTEM_WIDE"
             className="select-glass"
           >
-            <option value="SYSTEM_WIDE">
-              Entire system (all clubs and roster years)
-            </option>
-            {rosterYears.map((rosterYear) => (
+            <option value="SYSTEM_WIDE">Entire system (all clubs and roster years)</option>
+            {dashboardData.rosterYearStatuses.map((rosterYear) => (
               <option key={rosterYear.id} value={rosterYear.id}>
                 {rosterYear.club.name} ({rosterYear.club.code}) — {rosterYear.yearLabel}
                 {rosterYear.isActive ? " • Active" : ""}
@@ -218,11 +376,7 @@ function PreviewButton() {
   const { pending } = useFormStatus();
 
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="btn-primary disabled:opacity-60"
-    >
+    <button type="submit" disabled={pending} className="btn-primary disabled:opacity-60">
       {pending ? "Generating Preview..." : "Preview Sync"}
     </button>
   );
@@ -232,11 +386,7 @@ function ApplyButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
 
   return (
-    <button
-      type="submit"
-      disabled={pending || disabled}
-      className="btn-primary disabled:opacity-60"
-    >
+    <button type="submit" disabled={pending || disabled} className="btn-primary disabled:opacity-60">
       {pending ? "Applying..." : "Apply Safe Updates"}
     </button>
   );

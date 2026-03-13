@@ -17,6 +17,9 @@ export async function resetIntegrationDatabase() {
   await prisma.$executeRawUnsafe(`
     TRUNCATE TABLE
       "EventFormResponse",
+      "ClubActivity",
+      "CamporeeScore",
+      "EventTemplate",
       "ClassEnrollment",
       "RegistrationAttendee",
       "EventRegistration",
@@ -25,6 +28,8 @@ export async function resetIntegrationDatabase() {
       "ClassRequirement",
       "ClassCatalog",
       "ComplianceSyncRun",
+      "AuditLog",
+      "ScheduledJobRun",
       "MemberRequirement",
       "UserRosterMemberLink",
       "TltRecommendation",

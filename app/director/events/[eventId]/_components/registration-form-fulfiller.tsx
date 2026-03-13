@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { FormFieldScope, type Prisma } from "@prisma/client";
 
@@ -11,9 +11,11 @@ import {
 } from "../../../../actions/event-registration-actions";
 import {
   bootstrapRegistrationResponses,
+  getVisibleRegistrationFields,
   serializeRegistrationResponses,
   validateRequiredRegistrationResponses,
 } from "../../../../../lib/event-form-responses";
+import { isEventFieldVisible, readEventFieldConfig } from "../../../../../lib/event-form-config";
 
 type Attendee = {
   id: string;
@@ -52,24 +54,24 @@ type RegistrationFormFulfillerProps = {
   registrationNotice: string | null;
 };
 
+type RegistrationSection = {
+  id: string;
+  title: string;
+  description: string;
+  fields: DynamicField[];
+  kind: "roster" | "club" | "group";
+};
+
 function attendeeName(attendee: Attendee) {
   return `${attendee.firstName} ${attendee.lastName}`;
 }
 
 function parseStringOptions(options: unknown) {
-  if (!Array.isArray(options)) {
-    return [];
-  }
-
-  return options.filter((option): option is string => typeof option === "string");
+  return readEventFieldConfig(options).optionValues;
 }
 
 function parseDateInputValue(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value;
+  return typeof value === "string" ? value : "";
 }
 
 const INITIAL_ACTION_STATE: RegistrationActionState = {
@@ -93,6 +95,7 @@ export function RegistrationFormFulfiller({
   const [draftState, draftAction] = useFormState(saveEventRegistrationDraft, INITIAL_ACTION_STATE);
   const [submitState, submitAction] = useFormState(submitEventRegistration, INITIAL_ACTION_STATE);
   const [clientValidationMessage, setClientValidationMessage] = useState<string | null>(null);
+  const [currentSectionId, setCurrentSectionId] = useState<string>("roster");
 
   const selectedAttendeeSet = useMemo(() => new Set(selectedAttendeeIds), [selectedAttendeeIds]);
   const attendeeById = useMemo(
@@ -100,34 +103,95 @@ export function RegistrationFormFulfiller({
     [attendees],
   );
 
-  const groupedFields = useMemo(() => {
-    const groups = dynamicFields
-      .filter((field) => field.type === "FIELD_GROUP")
-      .map((group) => ({
-        ...group,
-        children: dynamicFields.filter((child) => child.parentFieldId === group.id),
-      }));
+  const visibleFields = useMemo(
+    () =>
+      getVisibleRegistrationFields({
+        fields: dynamicFields.filter((field) => field.type !== "FIELD_GROUP"),
+        globalResponses: responseState.globalResponses,
+      }) as DynamicField[],
+    [dynamicFields, responseState.globalResponses],
+  );
 
-    const standaloneFields = dynamicFields.filter(
-      (field) => field.type !== "FIELD_GROUP" && field.parentFieldId === null,
-    );
+  const responsesByFieldKey = useMemo(
+    () =>
+      Object.fromEntries(
+        dynamicFields
+          .filter((field) => field.fieldScope === FormFieldScope.GLOBAL && field.type !== "FIELD_GROUP")
+          .map((field) => [field.key, responseState.globalResponses[field.id]]),
+      ),
+    [dynamicFields, responseState.globalResponses],
+  );
 
-    return {
-      groups,
-      standaloneFields,
-    };
-  }, [dynamicFields]);
+  const sections = useMemo<RegistrationSection[]>(() => {
+    const nextSections: RegistrationSection[] = [
+      {
+        id: "roster",
+        title: "Roster Attendees",
+        description: "Select the club members attending this event.",
+        fields: [],
+        kind: "roster",
+      },
+    ];
+
+    const standaloneFields = visibleFields.filter((field) => field.parentFieldId === null);
+
+    if (standaloneFields.length > 0) {
+      nextSections.push({
+        id: "club-questions",
+        title: "Club Registration",
+        description: "Complete the club-wide questions that drive the rest of the registration.",
+        fields: standaloneFields,
+        kind: "club",
+      });
+    }
+
+    const groups = dynamicFields.filter((field) => field.type === "FIELD_GROUP");
+
+    for (const group of groups) {
+      if (!isEventFieldVisible(group, responsesByFieldKey)) {
+        continue;
+      }
+
+      const childFields = visibleFields.filter((field) => field.parentFieldId === group.id);
+
+      if (childFields.length === 0) {
+        continue;
+      }
+
+      nextSections.push({
+        id: group.id,
+        title: group.label,
+        description: group.description ?? "Finish this registration section before moving on.",
+        fields: childFields,
+        kind: "group",
+      });
+    }
+
+    return nextSections;
+  }, [dynamicFields, responsesByFieldKey, visibleFields]);
+
+  useEffect(() => {
+    if (!sections.some((section) => section.id === currentSectionId)) {
+      setCurrentSectionId(sections[0]?.id ?? "roster");
+    }
+  }, [currentSectionId, sections]);
+
+  const currentSectionIndex = Math.max(
+    sections.findIndex((section) => section.id === currentSectionId),
+    0,
+  );
+  const currentSection = sections[currentSectionIndex] ?? sections[0];
 
   const payload = useMemo(() => {
     return JSON.stringify(
       serializeRegistrationResponses({
-        fields: dynamicFields.filter((field) => field.type !== "FIELD_GROUP"),
+        fields: visibleFields,
         selectedAttendeeIds,
         globalResponses: responseState.globalResponses,
         attendeeResponses: responseState.attendeeResponses,
       }),
     );
-  }, [dynamicFields, responseState.attendeeResponses, responseState.globalResponses, selectedAttendeeIds]);
+  }, [responseState.attendeeResponses, responseState.globalResponses, selectedAttendeeIds, visibleFields]);
 
   function toggleAttendee(attendeeId: string, checked: boolean) {
     setSelectedAttendeeIds((current) => {
@@ -164,7 +228,7 @@ export function RegistrationFormFulfiller({
 
   function validateBeforeSubmit() {
     return validateRequiredRegistrationResponses({
-      fields: dynamicFields.filter((field) => field.type !== "FIELD_GROUP"),
+      fields: visibleFields,
       selectedAttendeeIds,
       globalResponses: responseState.globalResponses,
       attendeeResponses: responseState.attendeeResponses,
@@ -396,84 +460,98 @@ export function RegistrationFormFulfiller({
       {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} readOnly /> : null}
       <input type="hidden" name="registrationPayload" value={payload} readOnly />
 
-      {registrationNotice ? (
-        <p className="alert-warning">
-          {registrationNotice}
-        </p>
-      ) : null}
+      {registrationNotice ? <p className="alert-warning">{registrationNotice}</p> : null}
 
       <fieldset disabled={!canEditRegistration} className="space-y-6 disabled:opacity-70">
-        <article className="glass-panel">
+        <article className="glass-panel space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="section-title">Attendee Checklist</h2>
-              <p className="section-copy">Select all roster members from your club who will attend this event.</p>
+              <h2 className="section-title">Registration Modules</h2>
+              <p className="section-copy">
+                Work through each section in order. Conditional sections will appear when earlier answers require them.
+              </p>
             </div>
             <span className="status-chip-neutral">
-              {selectedAttendeeIds.length} selected
+              Step {currentSectionIndex + 1} of {sections.length}
             </span>
           </div>
 
-          <div className="mt-4 grid gap-2 md:grid-cols-2">
-            {attendees.map((attendee) => (
-              <label
-                key={attendee.id}
-                className="check-card"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedAttendeeSet.has(attendee.id)}
-                  onChange={(event) => toggleAttendee(attendee.id, event.currentTarget.checked)}
-                />
-                <span>
-                  {attendeeName(attendee)}
-                  <span className="ml-2 text-xs text-slate-500">({attendee.memberRole})</span>
-                </span>
-              </label>
-            ))}
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+            {sections.map((section, index) => {
+              const isActive = section.id === currentSection?.id;
+              const countLabel =
+                section.kind === "roster"
+                  ? `${selectedAttendeeIds.length} selected`
+                  : `${section.fields.length} prompt${section.fields.length === 1 ? "" : "s"}`;
+
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setCurrentSectionId(section.id)}
+                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                    isActive
+                      ? "border-indigo-300 bg-indigo-50"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Module {index + 1}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{section.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">{countLabel}</p>
+                </button>
+              );
+            })}
           </div>
         </article>
 
-        {dynamicFields.length > 0 ? (
+        {currentSection?.kind === "roster" ? (
+          <article className="glass-panel">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="section-title">Roster Attendees</h2>
+                <p className="section-copy">Select all roster members from your club who will attend this event.</p>
+              </div>
+              <span className="status-chip-neutral">{selectedAttendeeIds.length} selected</span>
+            </div>
+
+            <div className="mt-4 grid gap-2 md:grid-cols-2">
+              {attendees.map((attendee) => (
+                <label key={attendee.id} className="check-card">
+                  <input
+                    type="checkbox"
+                    checked={selectedAttendeeSet.has(attendee.id)}
+                    onChange={(event) => toggleAttendee(attendee.id, event.currentTarget.checked)}
+                  />
+                  <span>
+                    {attendeeName(attendee)}
+                    <span className="ml-2 text-xs text-slate-500">({attendee.memberRole})</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </article>
+        ) : currentSection ? (
           <article className="glass-panel space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="section-title">Dynamic Event Questions</h2>
-                <p className="section-copy">Complete all required registration questions before submitting.</p>
+                <h2 className="section-title">{currentSection.title}</h2>
+                <p className="section-copy">{currentSection.description}</p>
               </div>
               <span className="status-chip-neutral">
-                {dynamicFields.filter((field) => field.type !== "FIELD_GROUP").length} active prompts
+                {currentSection.fields.length} active prompt{currentSection.fields.length === 1 ? "" : "s"}
               </span>
             </div>
 
-            {groupedFields.standaloneFields.map((field) => renderFieldCard(field))}
-
-            {groupedFields.groups.map((group) => (
-              <section key={group.id} className="glass-subsection">
-                <div className="mb-3">
-                  <h3 className="text-base font-semibold text-indigo-900">{group.label}</h3>
-                  {group.description ? <p className="text-xs text-indigo-700">{group.description}</p> : null}
-                </div>
-                <div className="space-y-3">
-                  {group.children.length > 0 ? (
-                    group.children.map((child) => renderFieldCard(child))
-                  ) : (
-                    <p className="glass-card-soft text-xs text-slate-500">
-                      No child fields configured for this group.
-                    </p>
-                  )}
-                </div>
-              </section>
-            ))}
+            <div className="space-y-3">
+              {currentSection.fields.map((field) => renderFieldCard(field))}
+            </div>
           </article>
         ) : null}
       </fieldset>
 
       <div className="sticky-action-bar flex flex-wrap items-center justify-between gap-4 px-5 py-4">
         <div className="space-y-1">
-          {clientValidationMessage ? (
-            <p className="text-xs font-medium text-rose-700">{clientValidationMessage}</p>
-          ) : null}
+          {clientValidationMessage ? <p className="text-xs font-medium text-rose-700">{clientValidationMessage}</p> : null}
           <p className="text-xs text-slate-500">
             Current status: <span className="font-semibold text-slate-700">{registrationStatus ?? "Not started"}</span>
           </p>
@@ -490,13 +568,26 @@ export function RegistrationFormFulfiller({
             <p className="text-xs font-medium text-emerald-700">{submitState.message}</p>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            formAction={draftAction}
-            type="submit"
-            disabled={!canEditRegistration}
+            type="button"
+            onClick={() => setCurrentSectionId(sections[Math.max(currentSectionIndex - 1, 0)]?.id ?? "roster")}
+            disabled={currentSectionIndex === 0}
             className="btn-secondary"
           >
+            Previous Section
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              setCurrentSectionId(sections[Math.min(currentSectionIndex + 1, sections.length - 1)]?.id ?? "roster")
+            }
+            disabled={currentSectionIndex >= sections.length - 1}
+            className="btn-secondary"
+          >
+            Next Section
+          </button>
+          <button formAction={draftAction} type="submit" disabled={!canEditRegistration} className="btn-secondary">
             Save Draft
           </button>
           <button

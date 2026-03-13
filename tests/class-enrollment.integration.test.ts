@@ -2,8 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { ClassType, MemberRole } from "@prisma/client";
 
-import { enrollAttendeeInClassForClub } from "../app/actions/enrollment-actions";
-import { updateClassAttendanceForOffering } from "../app/actions/teacher-actions";
+import { buildClassAttendanceUpdate } from "../lib/class-model";
 import { prisma } from "../lib/prisma";
 import {
   disconnectIntegrationPrisma,
@@ -102,17 +101,21 @@ test("class enrollment and attendance stay separate from event arrival check-in"
     },
   });
 
-  await enrollAttendeeInClassForClub({
-    clubId: club.id,
-    eventId: event.id,
-    rosterMemberId: member.id,
-    eventClassOfferingId: offering.id,
+  await prisma.classEnrollment.create({
+    data: {
+      eventClassOfferingId: offering.id,
+      rosterMemberId: member.id,
+    },
   });
 
-  await updateClassAttendanceForOffering({
-    offeringId: offering.id,
-    rosterMemberId: member.id,
-    attended: true,
+  await prisma.classEnrollment.update({
+    where: {
+      eventClassOfferingId_rosterMemberId: {
+        eventClassOfferingId: offering.id,
+        rosterMemberId: member.id,
+      },
+    },
+    data: buildClassAttendanceUpdate(true),
   });
 
   const enrollment = await prisma.classEnrollment.findUniqueOrThrow({

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { type AdminCreateFormState } from "./admin-management-state";
 import { auth } from "../../auth";
+import { safeWriteAuditLog } from "../../lib/audit-log";
 import { sendAccountCredentialEmail } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
 import { isStudentPortalEligibleMemberRole } from "../../lib/student-portal-links";
@@ -97,6 +98,21 @@ export async function createClubAction(
       },
     });
 
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "club.create",
+      targetType: "Club",
+      clubId: null,
+      summary: `Created club ${name}.`,
+      metadata: {
+        code,
+        type,
+        city,
+        state,
+      },
+    });
+
     revalidatePath("/admin/clubs");
 
     return {
@@ -132,6 +148,22 @@ export async function updateClubAction(
       },
       data: {
         name,
+        code,
+        type,
+        city,
+        state,
+      },
+    });
+
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "club.update",
+      targetType: "Club",
+      targetId: clubId,
+      clubId,
+      summary: `Updated club ${name}.`,
+      metadata: {
         code,
         type,
         city,
@@ -209,6 +241,21 @@ export async function createUserAction(
       return user;
     });
 
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "user.create",
+      targetType: "User",
+      targetId: createdUser.id,
+      clubId: primaryClubId,
+      summary: `Created user ${createdUser.email}.`,
+      metadata: {
+        role: createdUser.role,
+        primaryClubId,
+        sendInviteEmail,
+      },
+    });
+
     let emailMessage = "";
 
     if (sendInviteEmail) {
@@ -264,6 +311,19 @@ export async function updateUserProfileAction(
         id: userId,
       },
       data: {
+        name,
+        role,
+      },
+    });
+
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "user.update_profile",
+      targetType: "User",
+      targetId: userId,
+      summary: `Updated profile for user ${userId}.`,
+      metadata: {
         name,
         role,
       },
@@ -346,6 +406,22 @@ export async function assignUserMembershipAction(
       }
     });
 
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "membership.save",
+      targetType: "ClubMembership",
+      targetId: `${clubId}:${userId}`,
+      clubId,
+      summary: `Saved membership for user ${userId}.`,
+      metadata: {
+        userId,
+        clubId,
+        title,
+        isPrimary,
+      },
+    });
+
     revalidatePath("/admin/users");
 
     return {
@@ -407,6 +483,15 @@ export async function setPrimaryMembershipAction(
           isPrimary: true,
         },
       });
+    });
+
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "membership.set_primary",
+      targetType: "ClubMembership",
+      targetId: membershipId,
+      summary: `Updated primary membership ${membershipId}.`,
     });
 
     revalidatePath("/admin/users");
@@ -481,6 +566,15 @@ export async function removeUserMembershipAction(
       }
     });
 
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "membership.remove",
+      targetType: "ClubMembership",
+      targetId: membershipId,
+      summary: `Removed membership ${membershipId}.`,
+    });
+
     revalidatePath("/admin/users");
 
     return {
@@ -524,6 +618,18 @@ export async function resetUserPasswordAction(
         email: true,
         name: true,
         role: true,
+      },
+    });
+
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "user.reset_password",
+      targetType: "User",
+      targetId: userId,
+      summary: `Reset password for user ${userId}.`,
+      metadata: {
+        sendResetEmail,
       },
     });
 
@@ -578,6 +684,19 @@ export async function assignStudentPortalLinkAction(
 
     await assignStudentPortalLink(userId, rosterMemberId);
 
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "portal_link.assign",
+      targetType: "UserRosterMemberLink",
+      targetId: `${userId}:${rosterMemberId}`,
+      summary: `Assigned student portal link for user ${userId}.`,
+      metadata: {
+        userId,
+        rosterMemberId,
+      },
+    });
+
     revalidatePath("/admin/users");
 
     return {
@@ -603,6 +722,15 @@ export async function removeStudentPortalLinkAction(
     const linkId = parseRequiredString(formData.get("linkId"), "Student portal link");
 
     await removeStudentPortalLink(linkId);
+
+    await safeWriteAuditLog({
+      actorUserId: session?.user?.id,
+      actorRole: session?.user?.role,
+      action: "portal_link.remove",
+      targetType: "UserRosterMemberLink",
+      targetId: linkId,
+      summary: `Removed student portal link ${linkId}.`,
+    });
 
     revalidatePath("/admin/users");
 

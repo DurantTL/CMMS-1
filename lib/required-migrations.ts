@@ -1,9 +1,16 @@
 export const REQUIRED_MIGRATION_NAMES = [
   "20260304170500_init",
+  "20260305173000_tlt_recommendation_invite_delivery_tracking",
   "20260312093000_add_last_tetanus_date_encryption",
   "20260312143000_add_event_form_field_scope",
   "20260312170000_add_class_attendance_and_phase3_rules",
   "20260312190000_add_compliance_sync_and_auth_rate_limits",
+  "20260312193000_add_system_wide_compliance_scope",
   "20260312213000_add_user_roster_member_links",
   "20260312233000_add_compliance_applied_by",
+  "20260313091500_add_club_activity_logging",
+  "20260313103000_add_event_templates",
+  "20260313114500_add_camporee_scores",
+  "20260313153000_add_audit_logs",
+  "20260313164500_add_scheduled_job_runs",
 ] as const;

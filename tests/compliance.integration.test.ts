@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { MemberRole, UserRole } from "@prisma/client";
 
-import { applyComplianceSyncRun } from "../app/actions/compliance-actions";
+import { applyComplianceSyncRunMutation } from "../lib/compliance-apply";
 import { prisma } from "../lib/prisma";
 import {
   disconnectIntegrationPrisma,
@@ -78,7 +78,7 @@ test("compliance apply records row-level audit details for each applied update",
     },
   });
 
-  const result = await applyComplianceSyncRun(run.id, admin.id);
+  const result = await applyComplianceSyncRunMutation(run.id, admin.id);
 
   assert.equal(result.updatedCount, 1);
 
@@ -100,6 +100,19 @@ test("compliance apply records row-level audit details for each applied update",
   assert.ok(updatedRun.appliedAt instanceof Date);
   assert.ok(Array.isArray(updatedRun.rowResults));
   assert.equal((updatedRun.rowResults as Array<{ appliedChange?: { result?: string } }>)[0]?.appliedChange?.result, "UPDATED");
+
+  const auditLog = await prisma.auditLog.findFirst({
+    where: {
+      action: "compliance.apply_run",
+      targetId: run.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  assert.equal(auditLog?.actorUserId, admin.id);
+  assert.equal(auditLog?.targetType, "ComplianceSyncRun");
 });
 
 test.after(async () => {

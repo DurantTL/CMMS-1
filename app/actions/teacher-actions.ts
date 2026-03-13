@@ -13,6 +13,12 @@ type MarkAttendanceInput = {
   attended: boolean;
 };
 
+type BulkAttendanceInput = {
+  offeringId: string;
+  rosterMemberIds: string[];
+  attended: boolean;
+};
+
 type SignOffRequirementsInput = {
   offeringId: string;
   rosterMemberIds: string[];
@@ -76,12 +82,12 @@ export async function updateClassAttendance(input: MarkAttendanceInput) {
   }
 
   await assertTeacherAccessToOffering(input.offeringId);
-  await updateClassAttendanceForOffering(input);
+  await updateClassAttendanceForOfferingInternal(input);
   revalidatePath(`/teacher/class/${input.offeringId}`);
   revalidatePath("/teacher/dashboard");
 }
 
-export async function updateClassAttendanceForOffering(input: MarkAttendanceInput) {
+async function updateClassAttendanceForOfferingInternal(input: MarkAttendanceInput) {
   if (!input.offeringId || !input.rosterMemberId) {
     throw new Error("Class offering and roster member are required.");
   }
@@ -108,6 +114,48 @@ export async function updateClassAttendanceForOffering(input: MarkAttendanceInpu
     },
     data: buildClassAttendanceUpdate(input.attended),
   });
+}
+
+export async function bulkUpdateClassAttendance(input: BulkAttendanceInput) {
+  if (!input.offeringId) {
+    throw new Error("Class offering is required.");
+  }
+
+  const rosterMemberIds = Array.from(new Set(input.rosterMemberIds.filter((id) => id.trim().length > 0)));
+
+  if (rosterMemberIds.length === 0) {
+    throw new Error("Select at least one student.");
+  }
+
+  await assertTeacherAccessToOffering(input.offeringId);
+
+  const enrollments = await prisma.classEnrollment.findMany({
+    where: {
+      eventClassOfferingId: input.offeringId,
+      rosterMemberId: {
+        in: rosterMemberIds,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (enrollments.length !== rosterMemberIds.length) {
+    throw new Error("One or more selected students are not enrolled in this class.");
+  }
+
+  await prisma.classEnrollment.updateMany({
+    where: {
+      id: {
+        in: enrollments.map((enrollment) => enrollment.id),
+      },
+    },
+    data: buildClassAttendanceUpdate(input.attended),
+  });
+
+  revalidatePath(`/teacher/class/${input.offeringId}`);
+  revalidatePath("/teacher/dashboard");
 }
 
 export async function signOffRequirementsForStudents(input: SignOffRequirementsInput) {

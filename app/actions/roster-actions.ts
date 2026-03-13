@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { safeWriteAuditLog } from "../../lib/audit-log";
 import { getManagedClubContext } from "../../lib/club-management";
 import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { decryptMedicalFields, prepareMedicalFieldsForWrite } from "../../lib/medical-data";
@@ -188,11 +189,39 @@ export async function saveRosterMember(formData: FormData) {
       },
       data: updatePayload,
     });
+
+    await safeWriteAuditLog({
+      actorUserId: managedClub.userId,
+      action: "roster_member.update",
+      targetType: "RosterMember",
+      targetId: existingMember.id,
+      clubId,
+      clubRosterYearId: rosterYear.id,
+      summary: `Updated roster member ${payload.firstName} ${payload.lastName}.`,
+      metadata: {
+        memberRole: payload.memberRole,
+        isActive: payload.isActive,
+      },
+    });
   } else {
-    await prisma.rosterMember.create({
+    const createdMember = await prisma.rosterMember.create({
       data: {
         ...payload,
         backgroundCheckCleared: false,
+      },
+    });
+
+    await safeWriteAuditLog({
+      actorUserId: managedClub.userId,
+      action: "roster_member.create",
+      targetType: "RosterMember",
+      targetId: createdMember.id,
+      clubId,
+      clubRosterYearId: rosterYear.id,
+      summary: `Created roster member ${payload.firstName} ${payload.lastName}.`,
+      metadata: {
+        memberRole: payload.memberRole,
+        isActive: payload.isActive,
       },
     });
   }
@@ -252,6 +281,17 @@ export async function createRosterYear(newYearLabel: string, clubIdOverride?: st
         id: true,
       },
     });
+  });
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "roster_year.create",
+    targetType: "ClubRosterYear",
+    clubId,
+    summary: `Created roster year ${label}.`,
+    metadata: {
+      yearLabel: label,
+    },
   });
 
   revalidatePath("/director/roster");
@@ -384,6 +424,19 @@ export async function executeYearlyRollover(
         }),
       });
     }
+  });
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "roster_year.rollover",
+    targetType: "ClubRosterYear",
+    clubId,
+    targetId: previousYearId,
+    summary: `Executed yearly rollover into ${label}.`,
+    metadata: {
+      previousYearId,
+      newYearLabel: label,
+    },
   });
 
   revalidatePath("/director/roster");
