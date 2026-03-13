@@ -135,6 +135,10 @@ The seed script creates baseline records, including:
 - Active roster year for the current year
 - Starter honors/classes + requirements
 
+For fresh disposable Docker environments, the web container also bootstraps the initial `SUPER_ADMIN`
+at startup after migrations if no `SUPER_ADMIN` user exists yet. It uses the same `SEED_SUPER_ADMIN_*`
+variables shown above.
+
 ---
 
 ## 8) Start the development server
@@ -171,6 +175,12 @@ Sign in with seeded Super Admin credentials:
 - **Password:** `SEED_SUPER_ADMIN_PASSWORD` (default: `ChangeMeNow123!`)
 
 Immediately rotate these credentials for any shared or non-local environment.
+
+If you need to recreate only the initial admin user without re-running the full seed:
+
+```bash
+npm run bootstrap:super-admin
+```
 
 ---
 

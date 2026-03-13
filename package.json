@@ -10,6 +10,7 @@
     "test": "node --import tsx --test tests/*.test.ts tests/*.integration.test.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "backfill:medical-encryption": "tsx prisma/backfill-medical-encryption.ts",
+    "bootstrap:super-admin": "node scripts/bootstrap-super-admin.js",
     "cleanup:auth-rate-limits": "tsx prisma/cleanup-auth-rate-limits.ts",
     "audit:email-normalization": "tsx prisma/audit-user-email-normalization.ts",
     "check:startup": "NODE_ENV=production tsx scripts/run-startup-self-checks.ts",
