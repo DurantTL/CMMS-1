@@ -18,5 +18,847 @@
     "language": "Idioma",
     "platformTitle": "Gestión de Clubes y Registro de Eventos",
     "conference": "Conferencia de Iowa-Misuri"
+  },
+  "Admin": {
+    "roles": {
+      "SUPER_ADMIN": "Superadministrador",
+      "CLUB_DIRECTOR": "Director de club",
+      "STAFF_TEACHER": "Maestro del personal",
+      "STUDENT_PARENT": "Padre o tutor"
+    },
+    "shell": {
+      "brand": {
+        "eyebrow": "Administración CMMS",
+        "title": "Gestión de la conferencia"
+      },
+      "mobileMenu": "Menú",
+      "searchLabel": "Buscar",
+      "searchPlaceholder": "Buscar eventos, clubes, usuarios o informes",
+      "notifications": "Notificaciones",
+      "quickCreate": "Crear rápido",
+      "quickCreateItems": {
+        "newEvent": "Nuevo evento",
+        "newClub": "Nuevo club",
+        "newUser": "Nuevo usuario"
+      },
+      "userMenu": {
+        "dashboard": "Panel",
+        "directorWorkspace": "Espacio del director",
+        "signOutHint": "Use el encabezado global para cerrar sesión."
+      },
+      "contextNavAriaLabel": "Navegación contextual de administración",
+      "closeNavigation": "Cerrar navegación",
+      "sections": {
+        "dashboard": {
+          "label": "Panel",
+          "description": "Salud y actividad de toda la conferencia."
+        },
+        "clubs": {
+          "label": "Clubes",
+          "description": "Operaciones de clubes, personas y nominaciones."
+        },
+        "events": {
+          "label": "Eventos",
+          "description": "Configuración, registro, clases y logística."
+        },
+        "reports": {
+          "label": "Informes",
+          "description": "Vistas de informes de conferencia y eventos."
+        },
+        "admin": {
+          "label": "Administración",
+          "description": "Controles de la plataforma, auditorías y almacenamiento."
+        }
+      },
+      "sidebar": {
+        "dashboard": {
+          "heading": "Operaciones de la conferencia",
+          "description": "Métricas principales, señales de salud y ventanas activas de eventos.",
+          "items": {
+            "overview": {
+              "label": "Resumen de la conferencia",
+              "description": "Métricas, salud del sistema y cronograma de eventos."
+            }
+          }
+        },
+        "clubs": {
+          "heading": "Operaciones de clubes",
+          "description": "Administre clubes, usuarios de la conferencia y flujos de nominación.",
+          "items": {
+            "directory": {
+              "label": "Directorio de clubes",
+              "description": "Lista de clubes y accesos de directores."
+            },
+            "users": {
+              "label": "Directorio de usuarios",
+              "description": "Cuentas, roles, membresías y enlaces del portal."
+            },
+            "nominations": {
+              "label": "Nominaciones",
+              "description": "Cola de revisión de premios y selección de ganadores."
+            }
+          }
+        },
+        "events": {
+          "heading": "Operaciones de eventos",
+          "description": "Cree eventos, administre plantillas y ejecute la logística.",
+          "items": {
+            "allEvents": {
+              "label": "Todos los eventos",
+              "description": "Ventanas, estado y accesos de supervisión."
+            },
+            "createEvent": {
+              "label": "Crear evento",
+              "description": "Cree un nuevo evento desde cero o desde una plantilla."
+            },
+            "catalog": {
+              "label": "Catálogo de clases",
+              "description": "Catálogo de clases y honores de la conferencia."
+            }
+          }
+        },
+        "reports": {
+          "heading": "Informes",
+          "description": "Revise envíos de la conferencia y exportaciones por evento.",
+          "items": {
+            "submitted": {
+              "label": "Informes enviados",
+              "description": "Informes mensuales y de fin de año."
+            }
+          }
+        },
+        "admin": {
+          "heading": "Controles de la plataforma",
+          "description": "Ejecute herramientas de cumplimiento, revise auditorías y mantenga el almacenamiento.",
+          "items": {
+            "compliance": {
+              "label": "Sincronización de cumplimiento",
+              "description": "Herramientas de vista previa y aplicación de Sterling."
+            },
+            "audit": {
+              "label": "Registro de auditoría",
+              "description": "Seguimiento de cambios sensibles en la plataforma."
+            },
+            "storage": {
+              "label": "Almacenamiento",
+              "description": "Uso de cargas privadas y herramientas de limpieza."
+            }
+          }
+        },
+        "eventContext": {
+          "heading": "Espacio del evento",
+          "description": "Herramientas contextuales para el evento seleccionado.",
+          "items": {
+            "allEvents": {
+              "label": "Todos los eventos",
+              "description": "Volver al índice completo de eventos."
+            },
+            "overview": {
+              "label": "Resumen",
+              "description": "Resumen del evento, registros y exportaciones."
+            },
+            "edit": {
+              "label": "Editar evento",
+              "description": "Detalles principales y constructor del formulario."
+            },
+            "classes": {
+              "label": "Clases",
+              "description": "Asignaciones de catálogo, maestros y capacidad."
+            },
+            "checkin": {
+              "label": "Registro de llegada",
+              "description": "Flujo de llegada y preparación de formularios."
+            },
+            "camporee": {
+              "label": "Camporee",
+              "description": "Puntuación de competencias y posiciones."
+            },
+            "operational": {
+              "label": "Informes operativos",
+              "description": "Exportaciones espirituales, deberes y AV."
+            },
+            "compliance": {
+              "label": "Informe de cumplimiento",
+              "description": "Asistentes marcados por falta de autorización."
+            },
+            "medical": {
+              "label": "Manifiesto médico",
+              "description": "Manifiestos dietéticos y médicos."
+            }
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "admin": "Administración",
+      "dashboard": "Panel",
+      "clubs": "Clubes",
+      "events": "Eventos",
+      "reports": "Informes",
+      "users": "Usuarios",
+      "nominations": "Nominaciones",
+      "catalog": "Catálogo de clases",
+      "compliance": "Sincronización de cumplimiento",
+      "storage": "Almacenamiento",
+      "audit": "Registro de auditoría",
+      "createEvent": "Crear evento",
+      "edit": "Editar",
+      "classes": "Clases",
+      "checkin": "Registro",
+      "camporee": "Camporee",
+      "operationalReports": "Informes operativos",
+      "complianceReport": "Informe de cumplimiento",
+      "medicalManifest": "Manifiesto médico"
+    },
+    "actions": {
+      "createEvent": "Crear evento",
+      "reviewReports": "Revisar informes",
+      "manageTemplates": "Administrar plantillas",
+      "openUsers": "Abrir usuarios",
+      "backToClubs": "Volver a clubes",
+      "sortByClub": "Ordenar por club",
+      "sortByMonth": "Ordenar por mes",
+      "backToEvents": "Volver a eventos",
+      "clearTemplate": "Quitar plantilla",
+      "backToOverseer": "Volver al panel del evento",
+      "eventOverview": "Resumen del evento",
+      "backToDashboard": "Volver al panel",
+      "openCheckin": "Abrir registro",
+      "downloadMasterAttendeesCsv": "Descargar CSV maestro",
+      "operationalReports": "Informes operativos",
+      "complianceDashboard": "Panel de cumplimiento",
+      "camporeeScoring": "Puntuación del camporee",
+      "backToEvent": "Volver al evento",
+      "downloadList": "Descargar lista",
+      "exportCsv": "Exportar a CSV",
+      "printManifest": "Imprimir manifiesto"
+    },
+    "status": {
+      "ACTIVE": "Activo",
+      "INACTIVE": "Inactivo",
+      "OPEN": "Abierto",
+      "UPCOMING": "Próximo",
+      "CLOSED": "Cerrado",
+      "DRAFT": "Borrador",
+      "SUBMITTED": "Enviado",
+      "APPROVED": "Aprobado",
+      "CHECKED_IN": "Registrado"
+    },
+    "pages": {
+      "dashboard": {
+        "eyebrow": "Panel de superadministración",
+        "title": "Resumen de la conferencia",
+        "description": "Monitoree la participación de clubes, el total de miembros y las ventanas activas de eventos."
+      },
+      "events": {
+        "eyebrow": "Superadministrador",
+        "title": "Gestión de eventos",
+        "description": "Revise ventanas de eventos, estado de registro y accesos de supervisión.",
+        "empty": "No se encontraron eventos. Cree su primer evento.",
+        "columns": {
+          "event": "Evento",
+          "mode": "Modo",
+          "dates": "Fechas",
+          "registration": "Registro",
+          "location": "Ubicación",
+          "clubs": "Clubes",
+          "actions": "Acciones"
+        },
+        "buttons": {
+          "openOverseer": "Abrir supervisor",
+          "edit": "Editar",
+          "classes": "Clases"
+        },
+        "tbd": "Por definir"
+      },
+      "clubs": {
+        "eyebrow": "Superadministrador",
+        "title": "Directorio de clubes",
+        "description": "Revise los clubes de la conferencia y los conteos de participación."
+      },
+      "users": {
+        "eyebrow": "Superadministrador",
+        "title": "Directorio de usuarios",
+        "description": "Revise roles, clubes principales y enlaces del portal."
+      },
+      "reports": {
+        "eyebrow": "Informes de la conferencia",
+        "title": "Revisión de informes enviados",
+        "description": "Revise todos los informes mensuales y de fin de año enviados por los clubes.",
+        "monthlyTitle": "Informes mensuales",
+        "monthlyEmpty": "No se encontraron informes mensuales enviados.",
+        "yearEndTitle": "Informes de fin de año",
+        "yearEndEmpty": "No se encontraron informes de fin de año enviados.",
+        "columns": {
+          "club": "Club",
+          "code": "Código",
+          "reportMonth": "Mes del informe",
+          "meetings": "Reuniones",
+          "uniform": "Uniforme %",
+          "points": "Puntos",
+          "submitted": "Enviado",
+          "year": "Año",
+          "friend": "Friend",
+          "companion": "Companion",
+          "explorer": "Explorer",
+          "ranger": "Ranger",
+          "voyager": "Voyager",
+          "guide": "Guide"
+        }
+      },
+      "audit": {
+        "eyebrow": "Panel de superadministración",
+        "title": "Registro de auditoría",
+        "description": "Revise cambios operativos sensibles en usuarios, nómina, cumplimiento, inscripción, informes y almacenamiento."
+      },
+      "nominations": {
+        "eyebrow": "Premios y nominaciones",
+        "title": "Cola de revisión de nominaciones",
+        "description": "Revise las nominaciones enviadas y márquelas como revisadas o ganadoras."
+      },
+      "storage": {
+        "eyebrow": "Controles de la plataforma",
+        "title": "Almacenamiento local seguro",
+        "description": "Supervise y elimine archivos de tarjetas de seguro almacenados en el servidor."
+      },
+      "catalog": {
+        "eyebrow": "Superadministrador",
+        "title": "Catálogo maestro de clases y honores",
+        "description": "Administre honores, talleres y requisitos previos de toda la conferencia."
+      },
+      "compliance": {
+        "eyebrow": "Panel de superadministración",
+        "title": "Motor de sincronización de cumplimiento",
+        "description": "Revise la preparación por año de nómina, la actividad reciente y los resultados de Sterling."
+      },
+      "createEvent": {
+        "eyebrow": "Superadministrador",
+        "title": "Crear evento",
+        "description": "Construya un nuevo evento por pasos y defina preguntas dinámicas o comience desde una plantilla.",
+        "entry": {
+          "title": "Ruta de creación",
+          "description": "Elija si desea comenzar desde una plantilla reutilizable o definir un nuevo modo de evento desde cero.",
+          "templateTitle": "Crear desde plantilla",
+          "templateDescription": "Cargue una plantilla guardada y herede su modo de evento y estructura de registro.",
+          "blankTitle": "Comenzar en blanco",
+          "blankDescription": "Cree un evento nuevo desde cero y elija el modo que mejor se ajuste al flujo.",
+          "modeTitle": "Modo del evento en blanco",
+          "modeDescription": "El modo del evento controla si el registro es solo del club, basado en nómina o listo para asignación de clases.",
+          "templateMode": "Esta plantilla creará un evento de tipo {mode}.",
+          "selectTemplatePrompt": "Elija una plantilla para continuar con el flujo basado en plantillas."
+        },
+        "templatesTitle": "Plantillas de eventos",
+        "templatesDescription": "Las plantillas guardan el asistente actual para reutilizar la misma configuración en futuros eventos.",
+        "templatesCount": "{count, plural, one {# plantilla} other {# plantillas}}",
+        "templatesEmpty": "Aún no hay plantillas guardadas. Complete el asistente y guarde su primer borrador como plantilla.",
+        "noDescription": "Sin descripción",
+        "dynamicFieldCount": "{count, plural, one {# campo dinámico} other {# campos dinámicos}}",
+        "loaded": "Cargada",
+        "loadTemplate": "Cargar plantilla",
+        "deactivate": "Desactivar",
+        "activate": "Activar",
+        "created": "Evento creado correctamente.",
+        "loadedTemplate": "Se cargó la plantilla {name} ({mode}). Todos los valores pueden editarse antes de guardar el nuevo evento.",
+        "steps": {
+          "step": "Paso {number}",
+          "eventBasics": {
+            "title": "Datos del evento",
+            "description": "Defina el nombre del evento y sus fechas."
+          },
+          "registration": {
+            "title": "Registro y ubicación",
+            "description": "Configure ventanas de registro, precios y ubicación."
+          },
+          "questions": {
+            "title": "Preguntas dinámicas",
+            "description": "Agregue preguntas opcionales para el registro."
+          }
+        },
+        "wizard": {
+          "eventBasics": "Datos del evento",
+          "eventName": "Nombre del evento",
+          "eventNamePlaceholder": "Camporee de la conferencia 2027",
+          "description": "Descripción (opcional)",
+          "descriptionPlaceholder": "Descripción pública del evento o notas de planificación",
+          "startsAt": "Comienza",
+          "endsAt": "Termina",
+          "registrationTitle": "Registro y ubicación",
+          "registrationOpens": "Abre el registro",
+          "registrationCloses": "Cierra el registro",
+          "basePrice": "Precio base (por asistente)",
+          "lateFeePrice": "Precio con recargo (por asistente)",
+          "lateFeeStarts": "Inicio del recargo",
+          "locationName": "Nombre de la ubicación",
+          "locationNamePlaceholder": "Campamento Indian Creek",
+          "locationAddress": "Dirección",
+          "locationAddressPlaceholder": "1234 Camp Rd, Ciudad, Estado",
+          "saveAsTemplate": "Guardar como plantilla",
+          "saveAsTemplateDescription": "Guarde el borrador actual como una plantilla reutilizable. Las plantillas cargadas pueden actualizarse en su lugar.",
+          "templateName": "Nombre de la plantilla",
+          "templateNamePlaceholder": "Plantilla base de camporee",
+          "templateDescription": "Descripción de la plantilla (opcional)",
+          "templateDescriptionPlaceholder": "Configuración reutilizable de horario, precios y formulario",
+          "templateActive": "Mantener esta plantilla activa para crear futuros eventos",
+          "back": "Atrás",
+          "next": "Siguiente",
+          "updateTemplate": "Actualizar plantilla",
+          "saveTemplate": "Guardar plantilla"
+        },
+        "validation": {
+          "missingTemplate": "Elija una plantilla de evento o cambie a comenzar en blanco.",
+          "missingEventMode": "Seleccione un modo de evento antes de crear un evento en blanco.",
+          "missingLabel": "Al campo dinámico {index} le falta una etiqueta.",
+          "missingOptions": "El campo dinámico \"{label}\" debe incluir al menos una opción.",
+          "missingConditionalOperator": "Al campo dinámico \"{label}\" le falta un operador condicional.",
+          "missingConditionalSource": "El campo dinámico \"{label}\" debe seleccionar un campo de origen condicional.",
+          "missingConditionalValue": "Al campo dinámico \"{label}\" le falta un valor condicional."
+        }
+      },
+      "dynamicBuilder": {
+        "title": "Preguntas dinámicas de registro",
+        "description": "Cree preguntas principales o grupos con campos secundarios anidados.",
+        "addQuestion": "Agregar pregunta",
+        "addFieldGroup": "Agregar grupo",
+        "empty": "Todavía no se han agregado campos dinámicos.",
+        "questionLabel": "Pregunta {number}",
+        "fieldGroupLabel": "Grupo {number}",
+        "childLabel": "Campo hijo {number}",
+        "up": "Subir",
+        "down": "Bajar",
+        "remove": "Eliminar",
+        "key": "Clave",
+        "label": "Etiqueta",
+        "descriptionLabel": "Descripción (opcional)",
+        "descriptionPlaceholder": "Se muestra a los clubes antes de enviar el registro",
+        "type": "Tipo",
+        "scope": "Alcance",
+        "required": "Obligatorio",
+        "options": "Opciones",
+        "addOptionPlaceholder": "Agregar opción",
+        "add": "Agregar",
+        "addAtLeastOneOption": "Agregue al menos una opción para esta pregunta.",
+        "conditionalVisibility": "Visibilidad condicional",
+        "conditionalDescriptionField": "Muestre este campo solo cuando una pregunta global coincida con la condición.",
+        "conditionalDescriptionSection": "Muestre esta sección solo cuando una pregunta global coincida con la condición.",
+        "enabled": "Habilitado",
+        "dependsOn": "Depende de",
+        "selectGlobalField": "Seleccione un campo global",
+        "operator": "Operador",
+        "value": "Valor",
+        "valuePlaceholder": "sí",
+        "noComparisonValue": "No se necesita un valor de comparación para este operador.",
+        "addChildField": "Agregar campo hijo",
+        "addChildFieldsHint": "Agregue campos hijos a este grupo.",
+        "typeOptions": {
+          "SHORT_TEXT": "Texto corto",
+          "LONG_TEXT": "Texto largo",
+          "DATE": "Fecha",
+          "SINGLE_SELECT": "Selección única",
+          "MULTI_SELECT": "Selección múltiple",
+          "BOOLEAN": "Booleano",
+          "NUMBER": "Número",
+          "ROSTER_SELECT": "Selección de nómina",
+          "ROSTER_MULTI_SELECT": "Selección múltiple de nómina",
+          "FIELD_GROUP": "Grupo de campos"
+        },
+        "scopeOptions": {
+          "GLOBAL": "Global",
+          "ATTENDEE": "Asistente"
+        },
+        "operators": {
+          "equals": "igual a",
+          "not_equals": "distinto de",
+          "includes": "incluye",
+          "not_includes": "no incluye",
+          "truthy": "tiene un valor",
+          "falsy": "está vacío"
+        }
+      },
+      "operationalReports": {
+        "spiritualTitle": "Lista espiritual / bautismos",
+        "spiritualDescription": "Entradas tomadas de baptism_names y bible_names en todos los registros enviados o aprobados.",
+        "dutyTitle": "Lista de deberes / actividades",
+        "dutyDescription": "Clubes agrupados por las selecciones en duty_first, duty_second y special_activity.",
+        "avTitle": "Solicitudes de AV y equipo",
+        "avDescription": "Clubes con respuestas relacionadas con AV y detalles exactos del equipo.",
+        "table": {
+          "club": "Club",
+          "clubCode": "Código del club",
+          "formField": "Campo del formulario",
+          "nameResponse": "Nombre / respuesta",
+          "dutyActivity": "Deber / actividad",
+          "assignedClubs": "Clubes asignados",
+          "requestedItems": "AV / equipo solicitado"
+        },
+        "empty": {
+          "spiritual": "No se enviaron nombres para bautismo o estudio bíblico.",
+          "duty": "No se enviaron selecciones de deberes o actividades.",
+          "av": "No se enviaron solicitudes de AV o equipo."
+        }
+      },
+      "medical": {
+        "table": {
+          "attendee": "Nombre del asistente",
+          "age": "Edad",
+          "role": "Rol",
+          "club": "Nombre del club",
+          "emergency": "Contacto de emergencia"
+        },
+        "dietaryTitle": "Manifiesto de restricciones dietéticas",
+        "dietaryDetail": "Restricción dietética",
+        "dietaryEmpty": "No se informaron restricciones dietéticas en registros enviados o aprobados.",
+        "medicalTitle": "Manifiesto de alertas médicas",
+        "medicalDetail": "Alerta médica",
+        "medicalEmpty": "No se informaron alertas médicas en registros enviados o aprobados."
+      }
+    }
+  },
+  "Director": {
+    "nav": {
+      "eyebrow": "Control del club",
+      "title": "Director del club",
+      "description": "Preparación de nómina, flujos de eventos y coordinación de clases.",
+      "sections": {
+        "dashboard": "Panel",
+        "events": "Eventos",
+        "roster": "Nómina",
+        "nominations": "Nominaciones",
+        "tlt": "TLT",
+        "reports": "Informes"
+      }
+    },
+    "common": {
+      "clubNotFound": "Club no encontrado",
+      "locationTbd": "Ubicación por definir",
+      "notStarted": "No iniciado",
+      "none": "Ninguno",
+      "yes": "Sí",
+      "no": "No",
+      "active": "Activo",
+      "archived": "Archivado",
+      "selected": "{count, plural, one {# seleccionado} other {# seleccionados}}",
+      "prompts": "{count, plural, one {# pregunta} other {# preguntas}}",
+      "activitiesInMonth": "{count, plural, one {# actividad este mes} other {# actividades este mes}}",
+      "attendeesCount": "{count, plural, one {# asistente} other {# asistentes}}"
+    },
+    "dashboard": {
+      "eyebrow": "Panel del director del club",
+      "description": "Administre la preparación de la nómina, los registros a eventos y los flujos de clases desde un solo lugar.",
+      "clubNotFoundDescription": "No se pudo cargar el club seleccionado para el panel.",
+      "viewRoster": "Ver nómina",
+      "continueRegistration": "Continuar registro",
+      "metrics": {
+        "activeMembers": "Miembros activos",
+        "activeMembersCaption": "Año de nómina activo actual.",
+        "upcomingEvents": "Próximos eventos",
+        "upcomingEventsCaption": "Eventos abiertos o próximos de la conferencia.",
+        "submittedRegistrations": "Registros enviados",
+        "submittedRegistrationsCaption": "Finalizados por su club.",
+        "draftRegistrations": "Registros en borrador",
+        "draftRegistrationsCaption": "En progreso y editables.",
+        "activitiesThisMonth": "Actividades este mes",
+        "activitiesThisMonthCaption": "Registradas para autocompletar el informe mensual.",
+        "latestMonthlyReport": "Último informe mensual",
+        "latestMonthlyReportEmpty": "Todavía no se han enviado informes mensuales.",
+        "latestMonth": "Mes más reciente: {month}",
+        "adultClearances": "Autorizaciones de adultos",
+        "adultClearancesEmpty": "Todavía no hay datos de cumplimiento del año activo.",
+        "adultClearancesCaption": "{rate}% de registros de personal/director/consejero autorizados"
+      },
+      "snapshot": {
+        "title": "Resumen de preparación",
+        "description": "Indicadores derivados de su nómina, cumplimiento, eventos, informes y actividad en vivo.",
+        "healthAreas": "{count, plural, one {# área de salud} other {# áreas de salud}}"
+      },
+      "upcomingEvents": {
+        "title": "Próximos eventos",
+        "openList": "Abrir lista de eventos",
+        "empty": "No hay próximos eventos disponibles en este momento."
+      },
+      "compliance": {
+        "title": "Preparación de cumplimiento",
+        "description": "Estado de autorización Sterling para el año de nómina activo. Los administradores de la conferencia aún controlan la vista previa y aplicación.",
+        "empty": "Todavía no hay una vista de cumplimiento disponible para el año de nómina activo.",
+        "adultRolesCleared": "Roles adultos autorizados",
+        "missingClearance": "{count} aún sin autorización Sterling",
+        "latestAdminSync": "Última sincronización administrativa",
+        "recentActivity": "Actividad reciente de sincronización",
+        "adultsBlocking": "Adultos que aún bloquean envíos",
+        "clear": "Actualmente no hay adultos de la nómina sin autorización Sterling."
+      },
+      "alerts": {
+        "title": "Alertas de acción",
+        "empty": "No se detectaron alertas bloqueantes.",
+        "noActiveRoster": "No se encontró un año de nómina activo. Ejecute la renovación anual antes del registro de eventos.",
+        "missingClearance": "{count} miembro(s) del personal/directores no tienen autorización Sterling y pueden bloquear envíos.",
+        "noUpcomingEvents": "Actualmente no hay próximos eventos publicados por la conferencia."
+      }
+    },
+    "events": {
+      "eyebrow": "Director del club",
+      "title": "Registro de eventos",
+      "description": "Abra un evento para seleccionar asistentes, completar formularios dinámicos y enviar el registro de su club.",
+      "empty": "Actualmente no hay próximos eventos disponibles.",
+      "status": "Estado: {status} - Asistentes: {count}",
+      "openEvent": "Abrir evento"
+    },
+    "eventDetail": {
+      "eyebrow": "Registro de eventos",
+      "noDescription": "No se proporcionó una descripción adicional.",
+      "clubNotFoundDescription": "No se pudo cargar el club seleccionado antes de registrar eventos.",
+      "when": "Cuándo",
+      "registrationWindow": "Ventana de registro",
+      "location": "Ubicación",
+      "address": "Dirección",
+      "currentPrice": "Precio actual por asistente",
+      "estimatedTotal": "Total estimado",
+      "camporeeEyebrow": "Resumen de camporee",
+      "camporeeTitle": "Puntuaciones actuales de competencia",
+      "camporeeDescription": "Estas puntuaciones están adjuntas a su registro existente y no reemplazan el flujo normal de registro.",
+      "totalScore": "Puntuación total",
+      "table": {
+        "category": "Categoría",
+        "score": "Puntuación",
+        "notes": "Notas"
+      }
+    },
+    "registrationForm": {
+      "modules": "Módulos de registro",
+      "modulesDescription": "Trabaje cada sección en orden. Las secciones condicionales aparecerán cuando respuestas anteriores las requieran.",
+      "step": "Paso {current} de {total}",
+      "module": "Módulo {index}",
+      "rosterTitle": "Asistentes de la nómina",
+      "rosterDescription": "Seleccione todos los miembros de su club que asistirán a este evento.",
+      "clubTitle": "Registro del club",
+      "clubDescription": "Complete las preguntas generales del club que impulsan el resto del registro.",
+      "rosterSectionDescription": "Seleccione los miembros del club que asistirán a este evento.",
+      "groupDefaultDescription": "Complete esta sección del registro antes de continuar.",
+      "selectAttendeeFirst": "Seleccione al menos un asistente para responder esta pregunta.",
+      "chooseRosterMember": "Elija uno o más miembros de la nómina.",
+      "selectRosterMember": "Seleccione un miembro de la nómina",
+      "selectOption": "Seleccione una opción",
+      "currentStatus": "Estado actual: {status}",
+      "previousSection": "Sección anterior",
+      "nextSection": "Siguiente sección",
+      "saveDraft": "Guardar borrador",
+      "submitRegistration": "Enviar registro",
+      "yes": "Sí",
+      "activePrompts": "{count, plural, one {# pregunta activa} other {# preguntas activas}}"
+    },
+    "roster": {
+      "eyebrow": "Gestión de nómina",
+      "description": "Revise la nómina activa del año, actualice detalles y ejecute la renovación anual.",
+      "clubNotFoundDescription": "No se pudo cargar el club seleccionado para la gestión de nómina.",
+      "startRollover": "Iniciar renovación anual",
+      "rolloverDescription": "No se encontró una nómina activa para {year}. Copie los miembros activos de {previousYear} a un nuevo año de nómina activo.",
+      "runRollover": "Ejecutar renovación {year}",
+      "activeRosterYear": "Año de nómina activo",
+      "activeMembers": "{count, plural, one {# miembro activo} other {# miembros activos}}",
+      "noRosterYears": "No hay años de nómina disponibles",
+      "noRosterYearsDescription": "Cree su primer año de nómina para {year} y luego comience a agregar miembros.",
+      "createRosterYear": "Crear año de nómina {year}"
+    },
+    "rosterTable": {
+      "title": "Miembros de la nómina",
+      "description": "Administre los miembros activos del año de nómina actual.",
+      "addMember": "Agregar miembro",
+      "missingConsentsTitle": "Falta uno o más consentimientos requeridos",
+      "headers": {
+        "name": "Nombre",
+        "tags": "Etiquetas",
+        "role": "Rol",
+        "backgroundCheck": "Verificación",
+        "consents": "Consentimientos",
+        "age": "Edad",
+        "gender": "Género",
+        "medical": "Médico",
+        "dietary": "Dieta",
+        "masterGuide": "Master Guide",
+        "actions": "Acciones"
+      },
+      "empty": "Todavía no se encontraron miembros activos en este año de nómina.",
+      "badges": {
+        "medical": "Médico",
+        "firstYear": "1er año",
+        "notRequired": "No requerido",
+        "missingClearance": "Falta autorización",
+        "dateLogged": "Fecha registrada {date}",
+        "cleared": "Autorizado {date}",
+        "missing": "Falta",
+        "complete": "Completo",
+        "flagged": "Marcado",
+        "certified": "Certificado"
+      },
+      "edit": "Editar",
+      "modal": {
+        "addTitle": "Agregar miembro a la nómina",
+        "editTitle": "Editar miembro de la nómina"
+      },
+      "form": {
+        "firstName": "Nombre",
+        "lastName": "Apellido",
+        "role": "Rol",
+        "age": "Edad",
+        "gender": "Género",
+        "preferNotToSay": "Prefiero no decirlo",
+        "dateOfBirth": "Fecha de nacimiento",
+        "backgroundCheckDate": "Fecha de verificación",
+        "backgroundCheckHelp": "Requerido para personal, directores y consejeros.",
+        "medicalFlags": "Indicadores médicos",
+        "dietaryRestrictions": "Restricciones dietéticas",
+        "emergencyContactName": "Nombre de contacto de emergencia",
+        "emergencyContactPhone": "Teléfono de contacto de emergencia",
+        "firstTimeMember": "Miembro por primera vez",
+        "medicalPersonnel": "Personal médico",
+        "masterGuide": "Master Guide",
+        "activeMember": "Miembro activo",
+        "agreementsTitle": "Acuerdos y salud",
+        "agreementsDescription": "Registre consentimientos del padre/tutor y datos clave de salud.",
+        "insuranceCompany": "Compañía de seguro",
+        "insurancePolicyNumber": "Número de póliza",
+        "lastTetanusDate": "Fecha de la última vacuna antitetánica",
+        "requiredConsents": "Consentimientos requeridos",
+        "photoReleaseLabel": "Autorización de foto/video:",
+        "photoReleaseText": "Autorizo a las actividades de Pathfinders a capturar y usar fotos/videos de mi hijo para comunicaciones del club y promoción del ministerio.",
+        "medicalConsentLabel": "Consentimiento de tratamiento médico:",
+        "medicalConsentText": "Autorizo al personal a gestionar atención médica de emergencia cuando no puedan comunicarse conmigo, incluyendo traslado y tratamiento según sea necesario.",
+        "membershipAgreementLabel": "Acuerdo de membresía:",
+        "membershipAgreementText": "Acepto las normas de participación de Pathfinders, las expectativas y las responsabilidades del padre/tutor para este año de membresía.",
+        "cancel": "Cancelar",
+        "createMember": "Crear miembro",
+        "saveChanges": "Guardar cambios"
+      }
+    },
+    "reports": {
+      "eyebrow": "Informes del club",
+      "title": "Motor de informes de {clubName}",
+      "description": "Reemplace los envíos en papel enviando sus métricas mensuales directamente a la conferencia.",
+      "autoFillTitle": "Autocompletar actividad mensual",
+      "autoFillDescription": "Cargue un mes para revisar actividades y luego envíe el informe mensual con valores auto completados y editables.",
+      "month": "Mes",
+      "loadMonth": "Cargar mes",
+      "activitiesLogged": "Actividades registradas",
+      "avgPathfinderAttendance": "Promedio de asistencia Pathfinder",
+      "avgStaffAttendance": "Promedio de asistencia del personal",
+      "avgUniformCompliance": "Promedio de cumplimiento de uniforme",
+      "usingRosterYear": "Usando el año de nómina {yearLabel} para {month}. Los valores del informe mensual se completarán automáticamente con las actividades registradas abajo, pero aún puede editarlos antes de enviar.",
+      "noRosterYearForMonth": "Ningún año de nómina cubre este mes todavía. Agregue o active el año correcto antes de registrar actividad.",
+      "existingReport": "Ya existe un informe para este mes, por lo que el formulario se precarga con los valores guardados.",
+      "monthlyReportTitle": "Iniciar informe mensual",
+      "monthlyReportDescription": "Los puntos se calculan automáticamente al enviar: {meetings} puntos por reunión, {pathfinder} por promedio Pathfinder, {staff} por promedio del personal, más un bono de uniforme de hasta {uniformMax}.",
+      "reportMonth": "Mes del informe",
+      "meetingCount": "Número de reuniones",
+      "averagePathfinderAttendance": "Promedio de asistencia Pathfinder",
+      "averageStaffAttendance": "Promedio de asistencia del personal",
+      "uniformCompliance": "Cumplimiento de uniforme (%)",
+      "submitMonthlyReport": "Enviar informe mensual",
+      "activityTitle": "Registrar actividades del club",
+      "activityDescription": "Registre actividades para {month} para que el informe mensual se complete con datos reales.",
+      "activityDate": "Fecha de actividad",
+      "activityTitleLabel": "Título de la actividad",
+      "activityTitlePlaceholder": "Reunión del club, práctica de orden cerrado, noche de alcance...",
+      "pathfinderAttendance": "Asistencia Pathfinder",
+      "staffAttendance": "Asistencia del personal",
+      "notes": "Notas",
+      "saveActivity": "Guardar actividad",
+      "noActivities": "Todavía no se han registrado actividades del club para este mes.",
+      "delete": "Eliminar",
+      "saveChanges": "Guardar cambios",
+      "recentSubmissions": "Envíos mensuales recientes",
+      "noRecentReports": "Todavía no se han enviado informes mensuales.",
+      "table": {
+        "month": "Mes",
+        "meetings": "Reuniones",
+        "uniform": "Uniforme %",
+        "points": "Puntos",
+        "status": "Estado"
+      }
+    },
+    "nominations": {
+      "eyebrow": "Premios y nominaciones",
+      "title": "Enviar nominación a la conferencia",
+      "description": "Nomine a un Pathfinder de {clubName} para reconocimiento de la conferencia.",
+      "formTitle": "Formulario Pathfinder del Año",
+      "formDescription": "Comparta un caso claro y específico sobre el impacto, servicio y liderazgo de este Pathfinder.",
+      "empty": "No se encontraron miembros activos en la nómina. Active un año y agregue miembros antes de enviar una nominación.",
+      "rosterMember": "Miembro de la nómina",
+      "selectMember": "Seleccione un miembro de {yearLabel}",
+      "awardType": "Tipo de premio",
+      "nominationYear": "Año de nominación",
+      "justification": "Justificación",
+      "justificationPlaceholder": "¿Por qué este Pathfinder merece este premio?",
+      "communityService": "Detalles del servicio comunitario",
+      "communityServicePlaceholder": "Describa proyectos significativos, constancia y resultados.",
+      "leadership": "Liderazgo",
+      "leadershipPlaceholder": "Describa el liderazgo mostrado en la vida del club, mentoría e iniciativa.",
+      "submit": "Enviar nominación",
+      "awardTypes": {
+        "pathfinderOfTheYear": "Pathfinder del Año"
+      }
+    },
+    "tlt": {
+      "eyebrow": "Entrenamiento de Liderazgo Juvenil",
+      "title": "Panel TLT de {clubName}",
+      "description": "Siga solicitudes TLT, estado bautismal, progreso de honores y tallas de uniforme.",
+      "clubNotFoundDescription": "No se pudo cargar el club seleccionado para solicitudes TLT.",
+      "noActiveRoster": "No se encontró un año de nómina activo",
+      "noActiveRosterDescription": "Active un año de nómina y asigne miembros TLT antes de comenzar solicitudes.",
+      "noMembers": "No hay miembros TLT en la nómina activa",
+      "noMembersDescription": "Agregue miembros con el rol TLT a la nómina activa para comenzar.",
+      "statusTitle": "Estado de solicitud TLT",
+      "activeRosterYear": "Año de nómina activo: {yearLabel}",
+      "table": {
+        "member": "Miembro",
+        "grade": "Grado",
+        "baptized": "Bautizado",
+        "status": "Estado",
+        "action": "Acción"
+      },
+      "editApplication": "Editar solicitud TLT",
+      "startApplication": "Iniciar solicitud TLT"
+    },
+    "classes": {
+      "clubNotFoundDescription": "Necesita un club válido antes de asignar clases del evento.",
+      "eyebrow": "Asignación de clases",
+      "description": "Asigne a cada asistente registrado a una clase del evento. La capacidad se actualiza en vivo.",
+      "notEnabled": "Este evento no está configurado para asignación de clases. Use el flujo de registro del evento o cree un evento con modo de asignación de clases para futuros eventos.",
+      "board": {
+        "attendeesTitle": "Asistentes registrados",
+        "attendeesDescription": "Elija un asistente para acciones detalladas o seleccione varios para asignación masiva.",
+        "searchAttendees": "Buscar asistentes",
+        "allAttendees": "Todos los asistentes",
+        "unassignedOnly": "Solo sin asignar",
+        "assignedOnly": "Solo asignados",
+        "selectVisible": "Seleccionar visibles",
+        "noClassAssigned": "Sin clase asignada",
+        "oneClassAssigned": "1 clase asignada",
+        "age": "Edad {age}",
+        "na": "N/D",
+        "enrollmentTitle": "Inscripción a clases y capacidad en vivo",
+        "assigningFor": "Asignando clases para {name}.",
+        "selectAttendee": "Seleccione un asistente para comenzar a asignar clases.",
+        "searchOfferings": "Buscar honores/clases",
+        "allOfferings": "Todas las clases",
+        "openSeats": "Con cupos",
+        "fullOfferings": "Llenas",
+        "selectAnAttendee": "Seleccione un asistente",
+        "alreadyEnrolled": "Ya inscrito",
+        "alreadyAssignedOther": "Ya asignado a otra clase del evento",
+        "classFull": "Clase llena",
+        "openCapacity": "Capacidad abierta",
+        "seatsLeft": "{count}/{capacity} cupos disponibles",
+        "selectedAssignable": "{assignable} seleccionables - {removable} removibles",
+        "remove": "Quitar",
+        "enrolled": "Inscrito",
+        "enroll": "Inscribir",
+        "bulkEnroll": "Inscripción masiva",
+        "bulkRemove": "Quitar masivo",
+        "locationTbd": "Ubicación por definir",
+        "unableEnroll": "No se pudo inscribir al asistente.",
+        "unableRemove": "No se pudo quitar la inscripción.",
+        "unableBulkEnroll": "No se pudo inscribir masivamente a los asistentes.",
+        "unableBulkRemove": "No se pudo quitar masivamente a los asistentes."
+      }
+    }
   }
 }

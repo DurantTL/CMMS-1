@@ -13,4 +13,5 @@ export const REQUIRED_MIGRATION_NAMES = [
   "20260313114500_add_camporee_scores",
   "20260313153000_add_audit_logs",
   "20260313164500_add_scheduled_job_runs",
+  "20260313183000_add_event_mode",
 ] as const;

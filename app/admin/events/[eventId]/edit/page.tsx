@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
 import { readEventFieldConfig } from "../../../../../lib/event-form-config";
+import { getEventModeConfig } from "../../../../../lib/event-modes";
 import { prisma } from "../../../../../lib/prisma";
+import { AdminPageHeader } from "../../../_components/admin-page-header";
 import { type DynamicFieldDraft } from "../../new/_components/dynamic-form-builder";
 import { EventDynamicFieldsEditor } from "./_components/event-dynamic-fields-editor";
 import { EventEditForm } from "./_components/event-edit-form";
@@ -27,6 +28,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     select: {
       id: true,
       name: true,
+      eventMode: true,
       description: true,
       startsAt: true,
       endsAt: true,
@@ -90,31 +92,32 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Event Management</p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-900">Edit Event</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Update core details for <span className="font-semibold text-slate-900">{event.name}</span>.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            href={`/admin/events/${event.id}`}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Overseer
-          </Link>
-          <Link
-            href="/admin/events"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Events
-          </Link>
-        </div>
-      </header>
+      <AdminPageHeader
+        eyebrow="Event Management"
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Events", href: "/admin/events" },
+          { label: event.name, href: `/admin/events/${event.id}` },
+          { label: "Edit" },
+        ]}
+        title="Edit Event"
+        description={`Update core details for ${event.name}.`}
+        secondaryActions={
+          <>
+            <Link href={`/admin/events/${event.id}`} className="btn-secondary">
+              Back to Overseer
+            </Link>
+            <Link href="/admin/events" className="btn-secondary">
+              Back to Events
+            </Link>
+          </>
+        }
+      />
 
       <EventEditForm
         defaults={{
           id: event.id,
+          eventModeLabel: getEventModeConfig(event.eventMode).label,
           name: event.name,
           description: event.description ?? "",
           startsAt: toDatetimeLocalValue(event.startsAt),

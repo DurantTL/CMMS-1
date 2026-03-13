@@ -2,21 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { buildDirectorPath } from "../../../lib/director-path";
 
 type DirectorNavItem = {
   href: string;
-  label: string;
+  labelKey: string;
 };
 
 const navItems: DirectorNavItem[] = [
-  { href: "/director/dashboard", label: "Dashboard" },
-  { href: "/director/events", label: "Events" },
-  { href: "/director/roster", label: "Roster" },
-  { href: "/director/nominations", label: "Nominations" },
-  { href: "/director/tlt", label: "TLT" },
-  { href: "/director/reports", label: "Reports" },
+  { href: "/director/dashboard", labelKey: "nav.sections.dashboard" },
+  { href: "/director/events", labelKey: "nav.sections.events" },
+  { href: "/director/roster", labelKey: "nav.sections.roster" },
+  { href: "/director/nominations", labelKey: "nav.sections.nominations" },
+  { href: "/director/tlt", labelKey: "nav.sections.tlt" },
+  { href: "/director/reports", labelKey: "nav.sections.reports" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -24,6 +25,7 @@ function isActive(pathname: string, href: string) {
 }
 
 export function DirectorNav() {
+  const t = useTranslations("Director");
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const managedClubId = searchParams.get("clubId");
@@ -32,17 +34,17 @@ export function DirectorNav() {
   return (
     <aside className="glass-sidebar h-fit lg:sticky lg:top-28">
       <div className="glass-card-soft">
-        <p className="hero-kicker">Club Control</p>
+        <p className="hero-kicker">{t("nav.eyebrow")}</p>
         <h2 className="mt-2 text-lg font-semibold text-slate-950">
-          Club Director
+          {t("nav.title")}
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Roster readiness, event workflows, and class coordination.
+          {t("nav.description")}
         </p>
       </div>
       <nav className="mt-4 flex flex-col gap-1.5">
         <p className="px-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        Club Director
+        {t("nav.title")}
         </p>
         {navItems.map((item) => {
           const active = isActive(pathname, item.href);
@@ -56,7 +58,7 @@ export function DirectorNav() {
               href={href}
               className={`nav-link ${active ? "nav-link-active" : "nav-link-idle"}`}
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}

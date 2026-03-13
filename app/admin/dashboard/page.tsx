@@ -1,23 +1,36 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { getAdminDashboardOverview } from "../../actions/admin-actions";
+import { AdminPageHeader } from "../_components/admin-page-header";
 
-function formatDateRange(startsAt: Date, endsAt: Date) {
-  return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
+function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
+  return `${startsAt.toLocaleDateString(locale)} - ${endsAt.toLocaleDateString(locale)}`;
 }
 
 export default async function SuperAdminDashboardPage() {
+  const t = await getTranslations("Admin");
+  const locale = await getLocale();
   const overview = await getAdminDashboardOverview();
 
   return (
     <section className="space-y-8">
-      <header className="glass-panel">
-        <p className="hero-kicker">Super Admin Dashboard</p>
-        <h1 className="hero-title mt-3">Conference Overview</h1>
-        <p className="hero-copy">
-          Monitor club participation, conference member totals, and active event windows.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.dashboard.eyebrow")}
+        breadcrumbs={[{ label: t("breadcrumbs.admin"), href: "/admin/dashboard" }, { label: t("breadcrumbs.dashboard") }]}
+        title={t("pages.dashboard.title")}
+        description={t("pages.dashboard.description")}
+        primaryAction={
+          <Link href="/admin/events/new" className="btn-primary">
+            {t("actions.createEvent")}
+          </Link>
+        }
+        secondaryActions={
+          <Link href="/admin/reports" className="btn-secondary">
+            {t("actions.reviewReports")}
+          </Link>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <article className="metric-card">
@@ -97,8 +110,8 @@ export default async function SuperAdminDashboardPage() {
                 {overview.upcomingEvents.map((event) => (
                   <tr key={event.id} className="align-top">
                     <td className="px-4 py-3 font-medium text-slate-900">{event.name}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatDateRange(event.startsAt, event.endsAt)}</td>
-                    <td className="px-4 py-3 text-slate-700">{event.locationName ?? "TBD"}</td>
+                    <td className="px-4 py-3 text-slate-700">{formatDateRange(event.startsAt, event.endsAt, locale)}</td>
+                    <td className="px-4 py-3 text-slate-700">{event.locationName ?? t("pages.events.tbd")}</td>
                     <td className="px-4 py-3 text-slate-700">{event._count.registrations}</td>
                     <td className="px-4 py-3">
                       <Link

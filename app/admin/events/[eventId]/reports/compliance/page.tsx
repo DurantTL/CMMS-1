@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { prisma } from "../../../../../../lib/prisma";
+import { AdminPageHeader } from "../../../../_components/admin-page-header";
 
 function formatDateRange(startsAt: Date, endsAt: Date) {
   return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
@@ -115,40 +116,39 @@ export default async function EventComplianceReportPage({ params }: CompliancePa
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Event Reports</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Event Compliance Flagging Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Adults in leadership/staff roles who are registered for this event but still missing Sterling Volunteers clearance.
-        </p>
-
-        <dl className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <div>
-            <dt className="font-semibold text-slate-900">Event</dt>
-            <dd>{event.name}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-slate-900">Event Dates</dt>
-            <dd>{formatDateRange(event.startsAt, event.endsAt)}</dd>
-          </div>
-        </dl>
-
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <a
-            href={csvHref}
-            download={csvFileName}
-            className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500"
-          >
+      <AdminPageHeader
+        eyebrow="Event Reports"
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Events", href: "/admin/events" },
+          { label: event.name, href: `/admin/events/${eventId}` },
+          { label: "Compliance Report" },
+        ]}
+        title="Event Compliance Flagging Dashboard"
+        description="Adults in leadership and staff roles who are registered for this event but still missing Sterling Volunteers clearance."
+        primaryAction={
+          <a href={csvHref} download={csvFileName} className="btn-primary">
             Download List
           </a>
-          <Link
-            href={`/admin/events/${eventId}`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
+        }
+        secondaryActions={
+          <Link href={`/admin/events/${eventId}`} className="btn-secondary">
             Back to Event
           </Link>
-        </div>
-      </header>
+        }
+        details={
+          <>
+            <div>
+              <dt className="font-semibold text-slate-900">Event</dt>
+              <dd>{event.name}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-slate-900">Event Dates</dt>
+              <dd>{formatDateRange(event.startsAt, event.endsAt)}</dd>
+            </div>
+          </>
+        }
+      />
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Flagged Attendees</h2>

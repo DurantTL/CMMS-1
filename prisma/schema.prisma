@@ -57,6 +57,12 @@ enum PaymentStatus {
   PAID
 }
 
+enum EventMode {
+  BASIC_FORM
+  CLUB_REGISTRATION
+  CLASS_ASSIGNMENT
+}
+
 enum FormFieldType {
   SHORT_TEXT
   LONG_TEXT
@@ -356,6 +362,7 @@ model Event {
   id                   String               @id @default(cuid())
   name                 String
   slug                 String               @unique
+  eventMode            EventMode            @default(CLUB_REGISTRATION)
   description          String?
   startsAt             DateTime
   endsAt               DateTime

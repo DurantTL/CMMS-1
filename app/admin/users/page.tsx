@@ -1,4 +1,8 @@
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+
 import { prisma } from "../../../lib/prisma";
+import { AdminPageHeader } from "../_components/admin-page-header";
 import { MembershipOpsForm } from "./_components/membership-ops-form";
 import { ResetPasswordForm } from "./_components/reset-password-form";
 import { StudentPortalLinkForm } from "./_components/student-portal-link-form";
@@ -9,6 +13,7 @@ import { UserCreateForm } from "./_components/user-create-form";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
+  const t = await getTranslations("Admin");
   const users = await prisma.user.findMany({
     select: {
       id: true,
@@ -147,13 +152,21 @@ export default async function AdminUsersPage() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Super Admin</p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-900">User Directory</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Review account roles and primary club assignments.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.users.eyebrow")}
+        breadcrumbs={[
+          { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+          { label: t("breadcrumbs.clubs"), href: "/admin/clubs" },
+          { label: t("breadcrumbs.users") },
+        ]}
+        title={t("pages.users.title")}
+        description={t("pages.users.description")}
+        secondaryActions={
+          <Link href="/admin/clubs" className="btn-secondary">
+            {t("actions.backToClubs")}
+          </Link>
+        }
+      />
 
       <UserCreateForm clubs={clubs} />
       <UpdateUserProfileForm

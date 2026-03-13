@@ -5,6 +5,7 @@ import {
   getEventCheckinDashboard,
   markRegistrationCheckedIn,
 } from "../../../../actions/checkin-actions";
+import { AdminPageHeader } from "../../../_components/admin-page-header";
 
 type CheckinPageProps = {
   params: Promise<{
@@ -42,26 +43,27 @@ export default async function EventCheckinPage({ params }: CheckinPageProps) {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">On-Site Gate Check-in</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{event.name}</h1>
-        <p className="mt-1 text-sm text-slate-600">{formatEventDateRange(event.startsAt, event.endsAt)}</p>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href={`/admin/events/${event.id}`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Event Overview
-          </Link>
-          <Link
-            href="/admin/dashboard"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
-      </header>
+      <AdminPageHeader
+        eyebrow="On-Site Gate Check-in"
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Events", href: "/admin/events" },
+          { label: event.name, href: `/admin/events/${event.id}` },
+          { label: "Check-in" },
+        ]}
+        title={event.name}
+        description={formatEventDateRange(event.startsAt, event.endsAt)}
+        secondaryActions={
+          <>
+            <Link href={`/admin/events/${event.id}`} className="btn-secondary">
+              Event Overview
+            </Link>
+            <Link href="/admin/dashboard" className="btn-secondary">
+              Back to Dashboard
+            </Link>
+          </>
+        }
+      />
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Registration Check-in Queue</h2>

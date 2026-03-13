@@ -1,6 +1,8 @@
 import { NominationStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 import { getAdminNominations, updateNominationStatus } from "../../actions/nomination-actions";
+import { AdminPageHeader } from "../_components/admin-page-header";
 
 function formatDateTime(value: Date) {
   return value.toLocaleString();
@@ -9,17 +11,21 @@ function formatDateTime(value: Date) {
 const adminReviewStatuses = [NominationStatus.REVIEWED, NominationStatus.WINNER];
 
 export default async function AdminNominationsPage() {
+  const t = await getTranslations("Admin");
   const nominations = await getAdminNominations();
 
   return (
     <section className="space-y-8">
-      <header>
-        <p className="text-sm font-medium text-slate-500">Awards & Nominations</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Nomination Review Queue</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Review submitted nominations and mark them as reviewed or winner selections.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.nominations.eyebrow")}
+        breadcrumbs={[
+          { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+          { label: t("breadcrumbs.clubs"), href: "/admin/clubs" },
+          { label: t("breadcrumbs.nominations") },
+        ]}
+        title={t("pages.nominations.title")}
+        description={t("pages.nominations.description")}
+      />
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Submitted Nominations</h2>

@@ -1,13 +1,17 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { getDirectorCamporeeSummary } from "../../../actions/camporee-actions";
 import { getManagedClubContext } from "../../../../lib/club-management";
+import { getEventModeConfig } from "../../../../lib/event-modes";
 import { getRegistrationLifecycleState } from "../../../../lib/registration-lifecycle";
 import { prisma } from "../../../../lib/prisma";
+import { buildDirectorPath } from "../../../../lib/director-path";
 import { RegistrationFormFulfiller } from "./_components/registration-form-fulfiller";
 
-function formatDateRange(startsAt: Date, endsAt: Date) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
+function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
+  const formatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -15,8 +19,8 @@ function formatDateRange(startsAt: Date, endsAt: Date) {
   return `${formatter.format(startsAt)} - ${formatter.format(endsAt)}`;
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
+function formatCurrency(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "USD",
   }).format(value);
@@ -29,6 +33,8 @@ export default async function DirectorEventRegistrationPage({
   params: Promise<{ eventId: string }>;
   searchParams?: Promise<{ clubId?: string }>;
 }) {
+  const t = await getTranslations("Director");
+  const locale = await getLocale();
   const { eventId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
@@ -61,8 +67,8 @@ export default async function DirectorEventRegistrationPage({
   if (!club) {
     return (
       <section className="glass-panel">
-        <h1 className="text-xl font-semibold">Club not found</h1>
-        <p className="mt-2 text-sm">The selected club could not be loaded before registering for events.</p>
+        <h1 className="text-xl font-semibold">{t("common.clubNotFound")}</h1>
+        <p className="mt-2 text-sm">{t("eventDetail.clubNotFoundDescription")}</p>
       </section>
     );
   }
@@ -112,6 +118,7 @@ export default async function DirectorEventRegistrationPage({
   const currentPricePerAttendee = inLateFeeWindow ? event.lateFeePrice : event.basePrice;
   const estimatedTotal = attendeeCount * currentPricePerAttendee;
   const camporeeSummary = await getDirectorCamporeeSummary(eventId, managedClub.clubId);
+  const eventModeConfig = getEventModeConfig(event.eventMode);
   const lifecycleState = getRegistrationLifecycleState({
     registrationOpensAt: event.registrationOpensAt,
     registrationClosesAt: event.registrationClosesAt,
@@ -121,50 +128,69 @@ export default async function DirectorEventRegistrationPage({
   return (
     <section className="space-y-6">
       <header className="glass-panel">
-        <p className="hero-kicker">Event Registration</p>
+        <p className="hero-kicker">{t("eventDetail.eyebrow")}</p>
         <h1 className="hero-title mt-3">{event.name}</h1>
-        <p className="hero-copy">{event.description ?? "No additional description provided."}</p>
+        <p className="hero-copy">{event.description ?? t("eventDetail.noDescription")}</p>
+        <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+          {eventModeConfig.label}
+        </p>
+        <p className="mt-3 text-sm text-slate-600">{eventModeConfig.description}</p>
 
         <dl className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <div>
-            <dt className="font-semibold text-slate-900">When</dt>
-            <dd>{formatDateRange(event.startsAt, event.endsAt)}</dd>
+            <dt className="font-semibold text-slate-900">{t("eventDetail.when")}</dt>
+            <dd>{formatDateRange(event.startsAt, event.endsAt, locale)}</dd>
           </div>
           <div>
-            <dt className="font-semibold text-slate-900">Registration Window</dt>
-            <dd>{formatDateRange(event.registrationOpensAt, event.registrationClosesAt)}</dd>
+            <dt className="font-semibold text-slate-900">{t("eventDetail.registrationWindow")}</dt>
+            <dd>{formatDateRange(event.registrationOpensAt, event.registrationClosesAt, locale)}</dd>
           </div>
           <div>
-            <dt className="font-semibold text-slate-900">Location</dt>
-            <dd>{event.locationName ?? "TBD"}</dd>
+            <dt className="font-semibold text-slate-900">{t("eventDetail.location")}</dt>
+            <dd>{event.locationName ?? t("common.locationTbd")}</dd>
           </div>
           <div>
-            <dt className="font-semibold text-slate-900">Address</dt>
-            <dd>{event.locationAddress ?? "TBD"}</dd>
+            <dt className="font-semibold text-slate-900">{t("eventDetail.address")}</dt>
+            <dd>{event.locationAddress ?? t("common.locationTbd")}</dd>
           </div>
           <div>
-            <dt className="font-semibold text-slate-900">Current Price / Attendee</dt>
-            <dd>{formatCurrency(currentPricePerAttendee)}</dd>
+            <dt className="font-semibold text-slate-900">{t("eventDetail.currentPrice")}</dt>
+            <dd>{formatCurrency(currentPricePerAttendee, locale)}</dd>
           </div>
           <div>
-            <dt className="font-semibold text-slate-900">Estimated Total</dt>
-            <dd>{formatCurrency(estimatedTotal)} ({attendeeCount} attendee{attendeeCount === 1 ? "" : "s"})</dd>
+            <dt className="font-semibold text-slate-900">{t("eventDetail.estimatedTotal")}</dt>
+            <dd>{formatCurrency(estimatedTotal, locale)} ({t("common.attendeesCount", { count: attendeeCount })})</dd>
           </div>
         </dl>
       </header>
+
+      {event.eventMode === "CLASS_ASSIGNMENT" ? (
+        <article className="glass-panel flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">{t("classes.eyebrow")}</h2>
+            <p className="mt-1 text-sm text-slate-600">{t("classes.description")}</p>
+          </div>
+          <Link
+            href={buildDirectorPath(`/director/events/${event.id}/classes`, managedClub.clubId, managedClub.isSuperAdmin)}
+            className="btn-secondary"
+          >
+            {t("classes.board.enrollmentTitle")}
+          </Link>
+        </article>
+      ) : null}
 
       {camporeeSummary && camporeeSummary.scores.length > 0 ? (
         <article className="glass-panel">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="hero-kicker">Camporee Summary</p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-900">Current Competition Scores</h2>
+              <p className="hero-kicker">{t("eventDetail.camporeeEyebrow")}</p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-900">{t("eventDetail.camporeeTitle")}</h2>
               <p className="mt-1 text-sm text-slate-600">
-                These scores are attached to your existing event registration and do not replace the normal registration workflow.
+                {t("eventDetail.camporeeDescription")}
               </p>
             </div>
             <div className="rounded-xl bg-amber-50 px-4 py-3 text-right">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Total Score</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{t("eventDetail.totalScore")}</p>
               <p className="text-3xl font-semibold text-amber-900">{camporeeSummary.totalScore}</p>
             </div>
           </div>
@@ -173,9 +199,9 @@ export default async function DirectorEventRegistrationPage({
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Score</th>
-                  <th className="px-4 py-3">Notes</th>
+                  <th className="px-4 py-3">{t("eventDetail.table.category")}</th>
+                  <th className="px-4 py-3">{t("eventDetail.table.score")}</th>
+                  <th className="px-4 py-3">{t("eventDetail.table.notes")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -183,7 +209,7 @@ export default async function DirectorEventRegistrationPage({
                   <tr key={`${camporeeSummary.registrationId}-${score.category}`}>
                     <td className="px-4 py-3 text-slate-900">{score.category}</td>
                     <td className="px-4 py-3 text-slate-700">{score.score}</td>
-                    <td className="px-4 py-3 text-slate-600">{score.notes ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-600">{score.notes ?? t("common.none")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -194,6 +220,7 @@ export default async function DirectorEventRegistrationPage({
 
       <RegistrationFormFulfiller
         eventId={event.id}
+        eventMode={event.eventMode}
         managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
         attendees={attendees.map((member) => ({
           id: member.id,

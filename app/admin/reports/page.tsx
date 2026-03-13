@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { getAdminReportsData } from "../../actions/club-report-actions";
+import { AdminPageHeader } from "../_components/admin-page-header";
 
 type ReportsPageProps = {
   searchParams?: Promise<{
@@ -9,8 +11,8 @@ type ReportsPageProps = {
   }>;
 };
 
-function formatMonth(reportMonth: Date) {
-  return reportMonth.toLocaleDateString(undefined, {
+function formatMonth(reportMonth: Date, locale: string) {
+  return reportMonth.toLocaleDateString(locale, {
     month: "short",
     year: "numeric",
   });
@@ -29,6 +31,8 @@ function getDirectionToggle(currentDirection: "asc" | "desc") {
 }
 
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
+  const t = await getTranslations("Admin");
+  const locale = await getLocale();
   const resolvedSearchParams = await searchParams;
   const sortBy = parseSort(resolvedSearchParams?.sort);
   const direction = parseDirection(resolvedSearchParams?.direction);
@@ -38,46 +42,45 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
 
   return (
     <section className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-500">Conference Reporting</p>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Submitted Reports Review</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Review all submitted monthly and year-end reports from clubs across the Conference.
-          </p>
-        </div>
-        <div className="flex gap-2 text-xs font-semibold">
-          <Link
-            href={`/admin/reports?sort=club&direction=${sortBy === "club" ? nextDirection : "asc"}`}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Sort by Club
-          </Link>
-          <Link
-            href={`/admin/reports?sort=month&direction=${sortBy === "month" ? nextDirection : "desc"}`}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Sort by Month
-          </Link>
-        </div>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.reports.eyebrow")}
+        breadcrumbs={[{ label: t("breadcrumbs.admin"), href: "/admin/dashboard" }, { label: t("breadcrumbs.reports") }]}
+        title={t("pages.reports.title")}
+        description={t("pages.reports.description")}
+        secondaryActions={
+          <>
+            <Link
+              href={`/admin/reports?sort=club&direction=${sortBy === "club" ? nextDirection : "asc"}`}
+              className="btn-secondary"
+            >
+              {t("actions.sortByClub")}
+            </Link>
+            <Link
+              href={`/admin/reports?sort=month&direction=${sortBy === "month" ? nextDirection : "desc"}`}
+              className="btn-secondary"
+            >
+              {t("actions.sortByMonth")}
+            </Link>
+          </>
+        }
+      />
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Monthly Reports</h2>
+        <h2 className="text-xl font-semibold text-slate-900">{t("pages.reports.monthlyTitle")}</h2>
         {reportData.monthlyReports.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">No submitted monthly reports found.</p>
+          <p className="mt-3 text-sm text-slate-600">{t("pages.reports.monthlyEmpty")}</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Code</th>
-                  <th className="px-4 py-3">Report Month</th>
-                  <th className="px-4 py-3">Meetings</th>
-                  <th className="px-4 py-3">Uniform %</th>
-                  <th className="px-4 py-3">Points</th>
-                  <th className="px-4 py-3">Submitted</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.club")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.code")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.reportMonth")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.meetings")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.uniform")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.points")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.submitted")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -85,7 +88,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
                   <tr key={report.id}>
                     <td className="px-4 py-3 font-medium text-slate-900">{report.club.name}</td>
                     <td className="px-4 py-3 text-slate-700">{report.club.code}</td>
-                    <td className="px-4 py-3 text-slate-700">{formatMonth(report.reportMonth)}</td>
+                    <td className="px-4 py-3 text-slate-700">{formatMonth(report.reportMonth, locale)}</td>
                     <td className="px-4 py-3 text-slate-700">{report.meetingCount}</td>
                     <td className="px-4 py-3 text-slate-700">{report.uniformCompliance}%</td>
                     <td className="px-4 py-3 text-slate-700">{report.pointsCalculated}</td>
@@ -101,23 +104,23 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
       </article>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Year-End Reports</h2>
+        <h2 className="text-xl font-semibold text-slate-900">{t("pages.reports.yearEndTitle")}</h2>
         {reportData.yearEndReports.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">No submitted year-end reports found.</p>
+          <p className="mt-3 text-sm text-slate-600">{t("pages.reports.yearEndEmpty")}</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Year</th>
-                  <th className="px-4 py-3">Friend</th>
-                  <th className="px-4 py-3">Companion</th>
-                  <th className="px-4 py-3">Explorer</th>
-                  <th className="px-4 py-3">Ranger</th>
-                  <th className="px-4 py-3">Voyager</th>
-                  <th className="px-4 py-3">Guide</th>
-                  <th className="px-4 py-3">Submitted</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.club")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.year")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.friend")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.companion")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.explorer")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.ranger")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.voyager")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.guide")}</th>
+                  <th className="px-4 py-3">{t("pages.reports.columns.submitted")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

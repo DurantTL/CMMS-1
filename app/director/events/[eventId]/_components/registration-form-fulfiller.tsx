@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useFormState } from "react-dom";
-import { FormFieldScope, type Prisma } from "@prisma/client";
+import { EventMode, FormFieldScope, type Prisma } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 import {
   type RegistrationActionState,
@@ -44,6 +45,7 @@ type ExistingResponse = {
 
 type RegistrationFormFulfillerProps = {
   eventId: string;
+  eventMode: EventMode;
   managedClubId: string | null;
   attendees: Attendee[];
   dynamicFields: DynamicField[];
@@ -81,6 +83,7 @@ const INITIAL_ACTION_STATE: RegistrationActionState = {
 
 export function RegistrationFormFulfiller({
   eventId,
+  eventMode,
   managedClubId,
   attendees,
   dynamicFields,
@@ -90,6 +93,7 @@ export function RegistrationFormFulfiller({
   canEditRegistration,
   registrationNotice,
 }: RegistrationFormFulfillerProps) {
+  const t = useTranslations("Director");
   const [selectedAttendeeIds, setSelectedAttendeeIds] = useState<string[]>(initialSelectedAttendeeIds);
   const [responseState, setResponseState] = useState(() => bootstrapRegistrationResponses(initialResponses));
   const [draftState, draftAction] = useFormState(saveEventRegistrationDraft, INITIAL_ACTION_STATE);
@@ -106,10 +110,14 @@ export function RegistrationFormFulfiller({
   const visibleFields = useMemo(
     () =>
       getVisibleRegistrationFields({
-        fields: dynamicFields.filter((field) => field.type !== "FIELD_GROUP"),
+        fields: dynamicFields.filter(
+          (field) =>
+            field.type !== "FIELD_GROUP" &&
+            (eventMode !== EventMode.BASIC_FORM || field.fieldScope !== FormFieldScope.ATTENDEE),
+        ),
         globalResponses: responseState.globalResponses,
       }) as DynamicField[],
-    [dynamicFields, responseState.globalResponses],
+    [dynamicFields, eventMode, responseState.globalResponses],
   );
 
   const responsesByFieldKey = useMemo(
@@ -123,23 +131,25 @@ export function RegistrationFormFulfiller({
   );
 
   const sections = useMemo<RegistrationSection[]>(() => {
-    const nextSections: RegistrationSection[] = [
-      {
-        id: "roster",
-        title: "Roster Attendees",
-        description: "Select the club members attending this event.",
-        fields: [],
-        kind: "roster",
-      },
-    ];
+    const nextSections: RegistrationSection[] = eventMode === EventMode.BASIC_FORM
+      ? []
+      : [
+          {
+            id: "roster",
+            title: t("registrationForm.rosterTitle"),
+            description: t("registrationForm.rosterSectionDescription"),
+            fields: [],
+            kind: "roster",
+          },
+        ];
 
     const standaloneFields = visibleFields.filter((field) => field.parentFieldId === null);
 
     if (standaloneFields.length > 0) {
       nextSections.push({
         id: "club-questions",
-        title: "Club Registration",
-        description: "Complete the club-wide questions that drive the rest of the registration.",
+        title: t("registrationForm.clubTitle"),
+        description: t("registrationForm.clubDescription"),
         fields: standaloneFields,
         kind: "club",
       });
@@ -161,14 +171,14 @@ export function RegistrationFormFulfiller({
       nextSections.push({
         id: group.id,
         title: group.label,
-        description: group.description ?? "Finish this registration section before moving on.",
+        description: group.description ?? t("registrationForm.groupDefaultDescription"),
         fields: childFields,
         kind: "group",
       });
     }
 
     return nextSections;
-  }, [dynamicFields, responsesByFieldKey, visibleFields]);
+  }, [dynamicFields, eventMode, responsesByFieldKey, t, visibleFields]);
 
   useEffect(() => {
     if (!sections.some((section) => section.id === currentSectionId)) {
@@ -194,6 +204,10 @@ export function RegistrationFormFulfiller({
   }, [responseState.attendeeResponses, responseState.globalResponses, selectedAttendeeIds, visibleFields]);
 
   function toggleAttendee(attendeeId: string, checked: boolean) {
+    if (eventMode === EventMode.BASIC_FORM) {
+      return;
+    }
+
     setSelectedAttendeeIds((current) => {
       if (checked) {
         return current.includes(attendeeId) ? current : [...current, attendeeId];
@@ -246,7 +260,7 @@ export function RegistrationFormFulfiller({
 
       return (
         <div className="glass-subsection space-y-2">
-          <p className="text-xs text-slate-500">Choose one or more roster members.</p>
+          <p className="text-xs text-slate-500">{t("registrationForm.chooseRosterMember")}</p>
           <div className="grid gap-2 md:grid-cols-2">
             {attendees.map((attendee) => {
               const checked = selected.includes(attendee.id);
@@ -285,7 +299,7 @@ export function RegistrationFormFulfiller({
           onChange={(event) => onValueChange(event.currentTarget.value)}
           className="select-glass"
         >
-          <option value="">Select a roster member</option>
+          <option value="">{t("registrationForm.selectRosterMember")}</option>
           {attendees.map((attendee) => (
             <option key={`${field.id}-opt-${attendee.id}`} value={attendee.id}>
               {attendeeName(attendee)} ({attendee.memberRole})
@@ -309,7 +323,7 @@ export function RegistrationFormFulfiller({
             checked={Boolean(currentValue)}
             onChange={(event) => onValueChange(event.currentTarget.checked)}
           />
-          Yes
+          {t("registrationForm.yes")}
         </label>
       );
     }
@@ -352,7 +366,7 @@ export function RegistrationFormFulfiller({
           onChange={(event) => onValueChange(event.currentTarget.value)}
           className="select-glass"
         >
-          <option value="">Select an option</option>
+          <option value="">{t("registrationForm.selectOption")}</option>
           {options.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -428,7 +442,7 @@ export function RegistrationFormFulfiller({
         {isAttendeeScoped ? (
           selectedAttendeeIds.length === 0 ? (
             <p className="glass-card-soft text-xs text-slate-500">
-              Select at least one attendee to answer this question.
+              {t("registrationForm.selectAttendeeFirst")}
             </p>
           ) : (
             <div className="space-y-3">
@@ -466,24 +480,19 @@ export function RegistrationFormFulfiller({
         <article className="glass-panel space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="section-title">Registration Modules</h2>
+              <h2 className="section-title">{t("registrationForm.modules")}</h2>
               <p className="section-copy">
-                Work through each section in order. Conditional sections will appear when earlier answers require them.
+                {t("registrationForm.modulesDescription")}
               </p>
             </div>
             <span className="status-chip-neutral">
-              Step {currentSectionIndex + 1} of {sections.length}
+              {t("registrationForm.step", { current: currentSectionIndex + 1, total: sections.length })}
             </span>
           </div>
 
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             {sections.map((section, index) => {
               const isActive = section.id === currentSection?.id;
-              const countLabel =
-                section.kind === "roster"
-                  ? `${selectedAttendeeIds.length} selected`
-                  : `${section.fields.length} prompt${section.fields.length === 1 ? "" : "s"}`;
-
               return (
                 <button
                   key={section.id}
@@ -495,9 +504,15 @@ export function RegistrationFormFulfiller({
                       : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Module {index + 1}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t("registrationForm.module", { index: index + 1 })}
+                  </p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">{section.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">{countLabel}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {section.kind === "roster"
+                      ? t("common.selected", { count: selectedAttendeeIds.length })
+                      : t("registrationForm.activePrompts", { count: section.fields.length })}
+                  </p>
                 </button>
               );
             })}
@@ -508,10 +523,10 @@ export function RegistrationFormFulfiller({
           <article className="glass-panel">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="section-title">Roster Attendees</h2>
-                <p className="section-copy">Select all roster members from your club who will attend this event.</p>
+                <h2 className="section-title">{t("registrationForm.rosterTitle")}</h2>
+                <p className="section-copy">{t("registrationForm.rosterDescription")}</p>
               </div>
-              <span className="status-chip-neutral">{selectedAttendeeIds.length} selected</span>
+              <span className="status-chip-neutral">{t("common.selected", { count: selectedAttendeeIds.length })}</span>
             </div>
 
             <div className="mt-4 grid gap-2 md:grid-cols-2">
@@ -538,7 +553,7 @@ export function RegistrationFormFulfiller({
                 <p className="section-copy">{currentSection.description}</p>
               </div>
               <span className="status-chip-neutral">
-                {currentSection.fields.length} active prompt{currentSection.fields.length === 1 ? "" : "s"}
+                {t("registrationForm.activePrompts", { count: currentSection.fields.length })}
               </span>
             </div>
 
@@ -553,7 +568,9 @@ export function RegistrationFormFulfiller({
         <div className="space-y-1">
           {clientValidationMessage ? <p className="text-xs font-medium text-rose-700">{clientValidationMessage}</p> : null}
           <p className="text-xs text-slate-500">
-            Current status: <span className="font-semibold text-slate-700">{registrationStatus ?? "Not started"}</span>
+            {t("registrationForm.currentStatus", {
+              status: registrationStatus ?? t("common.notStarted"),
+            })}
           </p>
           {draftState.status === "error" && draftState.message ? (
             <p className="text-xs font-medium text-rose-700">{draftState.message}</p>
@@ -575,7 +592,7 @@ export function RegistrationFormFulfiller({
             disabled={currentSectionIndex === 0}
             className="btn-secondary"
           >
-            Previous Section
+            {t("registrationForm.previousSection")}
           </button>
           <button
             type="button"
@@ -585,10 +602,10 @@ export function RegistrationFormFulfiller({
             disabled={currentSectionIndex >= sections.length - 1}
             className="btn-secondary"
           >
-            Next Section
+            {t("registrationForm.nextSection")}
           </button>
           <button formAction={draftAction} type="submit" disabled={!canEditRegistration} className="btn-secondary">
-            Save Draft
+            {t("registrationForm.saveDraft")}
           </button>
           <button
             formAction={submitAction}
@@ -604,7 +621,7 @@ export function RegistrationFormFulfiller({
             }}
             className="btn-primary"
           >
-            Submit Registration
+            {t("registrationForm.submitRegistration")}
           </button>
         </div>
       </div>

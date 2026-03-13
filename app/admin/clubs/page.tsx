@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { ClubType } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 import { prisma } from "../../../lib/prisma";
+import { AdminPageHeader } from "../_components/admin-page-header";
 import { ClubCreateForm } from "./_components/club-create-form";
 import { ClubUpdateForm } from "./_components/club-update-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminClubsPage() {
+  const t = await getTranslations("Admin");
   const clubs = await prisma.club.findMany({
     select: {
       id: true,
@@ -30,13 +33,17 @@ export default async function AdminClubsPage() {
 
   return (
     <section className="space-y-6">
-      <header className="glass-panel">
-        <p className="hero-kicker">Super Admin</p>
-        <h1 className="hero-title mt-3">Club Directory</h1>
-        <p className="hero-copy">
-          Review conference clubs and current participation counts.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.clubs.eyebrow")}
+        breadcrumbs={[{ label: t("breadcrumbs.admin"), href: "/admin/dashboard" }, { label: t("breadcrumbs.clubs") }]}
+        title={t("pages.clubs.title")}
+        description={t("pages.clubs.description")}
+        secondaryActions={
+          <Link href="/admin/users" className="btn-secondary">
+            {t("actions.openUsers")}
+          </Link>
+        }
+      />
 
       <ClubCreateForm />
       <ClubUpdateForm

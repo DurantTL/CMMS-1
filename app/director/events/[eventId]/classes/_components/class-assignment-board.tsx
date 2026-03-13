@@ -3,6 +3,7 @@
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { type MemberRole } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 import {
   bulkEnrollAttendeesInClass,
@@ -77,14 +78,11 @@ function fullName(attendee: Attendee) {
 }
 
 function formatAssignmentCount(count: number) {
-  if (count === 0) {
-    return "No class assigned";
-  }
-
-  return "1 class assigned";
+  return count === 0 ? "none" : "one";
 }
 
 export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offerings }: ClassAssignmentBoardProps) {
+  const t = useTranslations("Director");
   const router = useRouter();
   const [selectedAttendeeId, setSelectedAttendeeId] = useState<string>(attendees[0]?.id ?? "");
   const [selectedIds, setSelectedIds] = useState<string[]>(attendees[0] ? [attendees[0].id] : []);
@@ -182,15 +180,15 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
   return (
     <section className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
       <aside className="glass-sidebar space-y-3">
-        <h2 className="section-title">Registered Attendees</h2>
-        <p className="text-xs text-slate-600">Choose an attendee for detail actions, or select multiple attendees for bulk assignment.</p>
+        <h2 className="section-title">{t("classes.board.attendeesTitle")}</h2>
+        <p className="text-xs text-slate-600">{t("classes.board.attendeesDescription")}</p>
 
         <div className="space-y-2">
           <input
             type="search"
             value={attendeeSearch}
             onChange={(event) => setAttendeeSearch(event.currentTarget.value)}
-            placeholder="Search attendees"
+            placeholder={t("classes.board.searchAttendees")}
             className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
           />
           <select
@@ -198,14 +196,14 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
             onChange={(event) => setAttendeeStatus(event.currentTarget.value as "all" | "assigned" | "unassigned")}
             className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
           >
-            <option value="all">All attendees</option>
-            <option value="unassigned">Unassigned only</option>
-            <option value="assigned">Assigned only</option>
+            <option value="all">{t("classes.board.allAttendees")}</option>
+            <option value="unassigned">{t("classes.board.unassignedOnly")}</option>
+            <option value="assigned">{t("classes.board.assignedOnly")}</option>
           </select>
         </div>
 
         <div className="flex items-center justify-between rounded-2xl border border-white/50 bg-white/55 px-3 py-2">
-          <p className="text-xs text-slate-600">{visibleSelectedIds.length} selected</p>
+          <p className="text-xs text-slate-600">{t("common.selected", { count: visibleSelectedIds.length })}</p>
           <button
             type="button"
             onClick={() => {
@@ -218,7 +216,7 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
             }}
             className="text-xs font-semibold text-indigo-700"
           >
-            Select visible
+            {t("classes.board.selectVisible")}
           </button>
         </div>
 
@@ -253,7 +251,11 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                   >
                     <p className="text-sm font-semibold">{fullName(attendee)}</p>
                     <p className="text-xs text-slate-500">
-                      {attendee.memberRole} • Age {attendee.ageAtStart ?? "N/A"} • {formatAssignmentCount(enrolledCount)}
+                      {attendee.memberRole} {" • "}
+                      {t("classes.board.age", { age: attendee.ageAtStart ?? t("classes.board.na") })} {" • "}
+                      {formatAssignmentCount(enrolledCount) === "none"
+                        ? t("classes.board.noClassAssigned")
+                        : t("classes.board.oneClassAssigned")}
                     </p>
                   </button>
                 </div>
@@ -265,11 +267,11 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
 
       <div className="space-y-4">
         <header className="glass-panel">
-          <h1 className="section-title">Class Enrollment & Live Capacity</h1>
+          <h1 className="section-title">{t("classes.board.enrollmentTitle")}</h1>
           <p className="section-copy">
             {selectedAttendee
-              ? `Assigning classes for ${fullName(selectedAttendee)}.`
-              : "Select an attendee to start assigning classes."}
+              ? t("classes.board.assigningFor", { name: fullName(selectedAttendee) })
+              : t("classes.board.selectAttendee")}
           </p>
           <p className="mt-1 text-xs font-medium text-slate-500">{CLASS_ASSIGNMENT_POLICY}</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -277,7 +279,7 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
               type="search"
               value={offeringSearch}
               onChange={(event) => setOfferingSearch(event.currentTarget.value)}
-              placeholder="Search honors/classes"
+              placeholder={t("classes.board.searchOfferings")}
               className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
             />
             <select
@@ -285,9 +287,9 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
               onChange={(event) => setOfferingAvailability(event.currentTarget.value as "all" | "open" | "full")}
               className="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm text-slate-800"
             >
-              <option value="all">All offerings</option>
-              <option value="open">Open seats</option>
-              <option value="full">Full offerings</option>
+              <option value="all">{t("classes.board.allOfferings")}</option>
+              <option value="open">{t("classes.board.openSeats")}</option>
+              <option value="full">{t("classes.board.fullOfferings")}</option>
             </select>
           </div>
           {errorMessage ? (
@@ -320,16 +322,16 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                     },
                     offering.requirements,
                   )
-                : { eligible: false, blockers: ["Select an attendee"] };
+                : { eligible: false, blockers: [t("classes.board.selectAnAttendee")] };
 
               const blockedReason = !eligibility.eligible
                 ? eligibility.blockers[0]
                 : alreadyEnrolled
-                  ? "Already enrolled"
+                  ? t("classes.board.alreadyEnrolled")
                   : hasOtherEnrollment
-                    ? "Already assigned to another event class"
+                    ? t("classes.board.alreadyAssignedOther")
                     : isFull
-                      ? "Class full"
+                      ? t("classes.board.classFull")
                       : null;
 
               return (
@@ -339,10 +341,12 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                       <p className="text-sm font-semibold text-slate-900">
                         {offering.title} <span className="text-xs font-medium text-slate-500">({offering.code})</span>
                       </p>
-                      <p className="text-xs text-slate-500">{offering.location ?? "Location TBD"}</p>
+                      <p className="text-xs text-slate-500">{offering.location ?? t("classes.board.locationTbd")}</p>
                     </div>
                     <span className="status-chip-neutral bg-slate-900/90 text-white">
-                      {seatsLeft === null ? "Open capacity" : `${seatsLeft}/${offering.capacity} seats left`}
+                      {seatsLeft === null
+                        ? t("classes.board.openCapacity")
+                        : t("classes.board.seatsLeft", { count: seatsLeft, capacity: offering.capacity ?? 0 })}
                     </span>
                   </div>
 
@@ -384,7 +388,10 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                         offering.id,
                       );
 
-                      return `${assignableSelectedIds.length} selected assignable • ${removableSelectedIds.length} selected removable`;
+                      return t("classes.board.selectedAssignable", {
+                        assignable: assignableSelectedIds.length,
+                        removable: removableSelectedIds.length,
+                      });
                     })()}
                   </div>
 
@@ -422,14 +429,14 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                             router.refresh();
                           } catch (error) {
                             const message =
-                              error instanceof Error ? error.message : "Unable to enroll attendee.";
+                              error instanceof Error ? error.message : t("classes.board.unableEnroll");
                             setErrorMessage(message);
                           }
                         });
                       }}
                       className="btn-primary px-3 py-2 disabled:bg-slate-300"
                     >
-                      {alreadyEnrolled ? "Enrolled" : "Enroll"}
+                      {alreadyEnrolled ? t("classes.board.enrolled") : t("classes.board.enroll")}
                     </button>
 
                     {alreadyEnrolled ? (
@@ -459,14 +466,14 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                               router.refresh();
                             } catch (error) {
                               const message =
-                                error instanceof Error ? error.message : "Unable to remove enrollment.";
-                              setErrorMessage(message);
-                            }
+                              error instanceof Error ? error.message : t("classes.board.unableRemove");
+                            setErrorMessage(message);
+                          }
                           });
                         }}
                         className="btn-secondary ml-2 px-3 py-2"
                       >
-                        Remove
+                        {t("classes.board.remove")}
                       </button>
                     ) : null}
 
@@ -522,13 +529,13 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                             });
                             router.refresh();
                           } catch (error) {
-                            setErrorMessage(error instanceof Error ? error.message : "Unable to bulk enroll attendees.");
+                            setErrorMessage(error instanceof Error ? error.message : t("classes.board.unableBulkEnroll"));
                           }
                         });
                       }}
                       className="btn-secondary ml-2 px-3 py-2"
                     >
-                      Bulk Enroll
+                      {t("classes.board.bulkEnroll")}
                     </button>
 
                     <button
@@ -577,13 +584,13 @@ export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offeri
                             });
                             router.refresh();
                           } catch (error) {
-                            setErrorMessage(error instanceof Error ? error.message : "Unable to bulk remove attendees.");
+                            setErrorMessage(error instanceof Error ? error.message : t("classes.board.unableBulkRemove"));
                           }
                         });
                       }}
                       className="btn-secondary ml-2 px-3 py-2"
                     >
-                      Bulk Remove
+                      {t("classes.board.bulkRemove")}
                     </button>
                   </div>
                 </div>

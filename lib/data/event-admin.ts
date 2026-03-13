@@ -1,4 +1,4 @@
-import { type FormFieldType, type FormFieldScope, type Prisma } from "@prisma/client";
+import { EventMode, type FormFieldType, type FormFieldScope, type Prisma } from "@prisma/client";
 
 type DynamicFieldInput = {
   id: string;
@@ -14,6 +14,7 @@ type DynamicFieldInput = {
 };
 
 export type EventMutationInput = {
+  eventMode: EventMode;
   name: string;
   description: string | null;
   startsAt: Date;
@@ -104,6 +105,7 @@ export async function createEventFromInput(
   const event = await tx.event.create({
     data: {
       name: input.name,
+      eventMode: input.eventMode,
       description: input.description,
       slug,
       startsAt: input.startsAt,

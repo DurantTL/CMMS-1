@@ -9,6 +9,7 @@ import {
 
 type EventEditDefaults = {
   id: string;
+  eventModeLabel: string;
   name: string;
   description: string;
   startsAt: string;
@@ -36,6 +37,9 @@ export function EventEditForm({ defaults }: EventEditFormProps) {
       <div>
         <h2 className="text-xl font-semibold text-slate-900">Edit Event Details</h2>
         <p className="mt-1 text-sm text-slate-600">Update timeline, registration window, and pricing details.</p>
+        <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+          Mode: {defaults.eventModeLabel}
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

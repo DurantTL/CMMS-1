@@ -1,44 +1,44 @@
 import { getDirectorNominationPageData, submitNomination } from "../../actions/nomination-actions";
+import { getTranslations } from "next-intl/server";
 import { getManagedClubContext } from "../../../lib/club-management";
-
-const awardTypes = ["Pathfinder of the Year"];
 
 export default async function DirectorNominationsPage({
   searchParams,
 }: {
   searchParams?: Promise<{ clubId?: string }>;
 }) {
+  const t = await getTranslations("Director");
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
   const nominationData = await getDirectorNominationPageData(managedClub.clubId);
   const currentYear = new Date().getFullYear();
+  const awardTypes = [t("nominations.awardTypes.pathfinderOfTheYear")];
 
   return (
     <section className="space-y-8">
       <header>
-        <p className="text-sm font-medium text-slate-500">Awards & Nominations</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Submit Conference Nomination</h1>
+        <p className="text-sm font-medium text-slate-500">{t("nominations.eyebrow")}</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t("nominations.title")}</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Nominate a Pathfinder from {nominationData.clubName} for conference recognition.
+          {t("nominations.description", { clubName: nominationData.clubName })}
         </p>
       </header>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Pathfinder of the Year Nomination Form</h2>
+        <h2 className="text-xl font-semibold text-slate-900">{t("nominations.formTitle")}</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Share a clear, specific case for this Pathfinder&apos;s impact, service, and leadership.
+          {t("nominations.formDescription")}
         </p>
 
         {!nominationData.activeRosterYear || nominationData.activeRosterYear.members.length === 0 ? (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            No active roster members were found. Activate a roster year and add members before submitting a
-            nomination.
+            {t("nominations.empty")}
           </p>
         ) : (
           <form action={submitNomination} className="mt-6 grid gap-4 md:grid-cols-2">
             {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
             <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-              <span>Roster Member</span>
+              <span>{t("nominations.rosterMember")}</span>
               <select
                 name="rosterMemberId"
                 required
@@ -46,7 +46,7 @@ export default async function DirectorNominationsPage({
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none"
               >
                 <option value="" disabled>
-                  Select a member from {nominationData.activeRosterYear.yearLabel}
+                  {t("nominations.selectMember", { yearLabel: nominationData.activeRosterYear.yearLabel })}
                 </option>
                 {nominationData.activeRosterYear.members.map((member) => (
                   <option key={member.id} value={member.id}>
@@ -57,7 +57,7 @@ export default async function DirectorNominationsPage({
             </label>
 
             <label className="space-y-1 text-sm font-medium text-slate-700">
-              <span>Award Type</span>
+              <span>{t("nominations.awardType")}</span>
               <select
                 name="awardType"
                 required
@@ -73,7 +73,7 @@ export default async function DirectorNominationsPage({
             </label>
 
             <label className="space-y-1 text-sm font-medium text-slate-700">
-              <span>Nomination Year</span>
+              <span>{t("nominations.nominationYear")}</span>
               <input
                 type="number"
                 name="year"
@@ -86,34 +86,34 @@ export default async function DirectorNominationsPage({
             </label>
 
             <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-              <span>Justification</span>
+              <span>{t("nominations.justification")}</span>
               <textarea
                 name="justificationText"
                 rows={5}
                 required
-                placeholder="Why is this Pathfinder deserving of this award?"
+                placeholder={t("nominations.justificationPlaceholder")}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none"
               />
             </label>
 
             <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-              <span>Community Service Details</span>
+              <span>{t("nominations.communityService")}</span>
               <textarea
                 name="communityServiceDetails"
                 rows={5}
                 required
-                placeholder="Describe meaningful service projects, consistency, and outcomes."
+                placeholder={t("nominations.communityServicePlaceholder")}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none"
               />
             </label>
 
             <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-              <span>Leadership</span>
+              <span>{t("nominations.leadership")}</span>
               <textarea
                 name="leadershipDetails"
                 rows={5}
                 required
-                placeholder="Describe leadership shown in club life, mentoring, and initiative."
+                placeholder={t("nominations.leadershipPlaceholder")}
                 className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none"
               />
             </label>
@@ -123,7 +123,7 @@ export default async function DirectorNominationsPage({
                 type="submit"
                 className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
               >
-                Submit Nomination
+                {t("nominations.submit")}
               </button>
             </div>
           </form>

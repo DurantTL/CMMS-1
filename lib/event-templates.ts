@@ -1,9 +1,10 @@
-import { FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
+import { EventMode, FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
 
 import {
   readEventFieldConfig,
   type EventFieldConditionalOperator,
 } from "./event-form-config";
+import { parseEventMode } from "./event-modes";
 
 export type EventTemplateDynamicField = {
   id: string;
@@ -21,6 +22,7 @@ export type EventTemplateDynamicField = {
 };
 
 export type EventTemplateSnapshot = {
+  eventMode: EventMode;
   name: string;
   description: string;
   startsAt: string;
@@ -118,6 +120,7 @@ export function readTemplateFieldOptions(options: unknown) {
 }
 
 export function buildEventTemplateSnapshot(input: {
+  eventMode: EventMode;
   name: string;
   description: string | null;
   startsAt: Date;
@@ -132,6 +135,7 @@ export function buildEventTemplateSnapshot(input: {
   dynamicFields: RawDynamicField[];
 }): EventTemplateSnapshot {
   return {
+    eventMode: input.eventMode,
     name: input.name,
     description: input.description ?? "",
     startsAt: toTemplateDatetimeValue(input.startsAt),
@@ -177,6 +181,7 @@ export function parseEventTemplateSnapshot(snapshot: Prisma.JsonValue): EventTem
   }
 
   return {
+    eventMode: parseEventMode(typeof candidate.eventMode === "string" ? candidate.eventMode : null),
     name: readString(candidate.name, "Template name"),
     description: readString(candidate.description ?? "", "Template description"),
     startsAt: readString(candidate.startsAt, "Template start date"),

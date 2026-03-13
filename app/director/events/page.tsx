@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { getManagedClubContext } from "../../../lib/club-management";
 import { buildDirectorPath } from "../../../lib/director-path";
@@ -9,6 +10,8 @@ export default async function DirectorEventsPage({
 }: {
   searchParams?: Promise<{ clubId?: string }>;
 }) {
+  const t = await getTranslations("Director");
+  const locale = await getLocale();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
@@ -47,16 +50,16 @@ export default async function DirectorEventsPage({
   return (
     <section className="space-y-6">
       <header className="glass-panel">
-        <p className="hero-kicker">Club Director</p>
-        <h1 className="hero-title mt-3">Event Registration</h1>
+        <p className="hero-kicker">{t("events.eyebrow")}</p>
+        <h1 className="hero-title mt-3">{t("events.title")}</h1>
         <p className="hero-copy">
-          Open an event to select attendees, complete dynamic forms, and submit your club registration.
+          {t("events.description")}
         </p>
       </header>
 
       {events.length === 0 ? (
         <article className="empty-state text-sm text-slate-600">
-          No upcoming events are currently available.
+          {t("events.empty")}
         </article>
       ) : (
         <div className="grid gap-4">
@@ -69,11 +72,14 @@ export default async function DirectorEventsPage({
                   <div>
                     <h2 className="text-xl font-semibold text-slate-900">{event.name}</h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      {event.startsAt.toLocaleDateString()} - {event.endsAt.toLocaleDateString()}
+                      {event.startsAt.toLocaleDateString(locale)} - {event.endsAt.toLocaleDateString(locale)}
                     </p>
-                    <p className="text-sm text-slate-500">{event.locationName ?? "Location TBD"}</p>
+                    <p className="text-sm text-slate-500">{event.locationName ?? t("common.locationTbd")}</p>
                     <p className="mt-2 text-sm text-slate-700">
-                      Status: {registration?.status ?? "NOT STARTED"} • Attendees: {registration?._count.attendees ?? 0}
+                      {t("events.status", {
+                        status: registration?.status ?? t("common.notStarted"),
+                        count: registration?._count.attendees ?? 0,
+                      })}
                     </p>
                   </div>
 
@@ -81,7 +87,7 @@ export default async function DirectorEventsPage({
                     href={buildDirectorPath(`/director/events/${event.id}`, managedClub.clubId, managedClub.isSuperAdmin)}
                     className="btn-primary inline-flex"
                   >
-                    Open Event
+                    {t("events.openEvent")}
                   </Link>
                 </div>
               </article>

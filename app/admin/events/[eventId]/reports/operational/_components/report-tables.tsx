@@ -1,3 +1,6 @@
+ "use client";
+
+import { useTranslations } from "next-intl";
 import type { AvReportRow, DutyReportRow, SpiritualReportRow } from "../../../../../../actions/report-actions";
 
 type ExportButtonProps = {
@@ -23,8 +26,9 @@ type SpiritualReportTableProps = {
 };
 
 export function SpiritualReportTable({ rows }: SpiritualReportTableProps) {
+  const t = useTranslations("Admin");
   if (rows.length === 0) {
-    return <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">No baptism or bible-study names were submitted.</p>;
+    return <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{t("pages.operationalReports.empty.spiritual")}</p>;
   }
 
   return (
@@ -32,10 +36,10 @@ export function SpiritualReportTable({ rows }: SpiritualReportTableProps) {
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
           <tr>
-            <th className="px-4 py-3">Club</th>
-            <th className="px-4 py-3">Club Code</th>
-            <th className="px-4 py-3">Form Field</th>
-            <th className="px-4 py-3">Name / Response</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.club")}</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.clubCode")}</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.formField")}</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.nameResponse")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -58,8 +62,9 @@ type DutyReportTableProps = {
 };
 
 export function DutyReportTable({ rows }: DutyReportTableProps) {
+  const t = useTranslations("Admin");
   if (rows.length === 0) {
-    return <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">No duty or activity selections were submitted.</p>;
+    return <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{t("pages.operationalReports.empty.duty")}</p>;
   }
 
   return (
@@ -67,8 +72,8 @@ export function DutyReportTable({ rows }: DutyReportTableProps) {
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
           <tr>
-            <th className="px-4 py-3">Duty / Activity</th>
-            <th className="px-4 py-3">Assigned Clubs</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.dutyActivity")}</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.assignedClubs")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -97,8 +102,9 @@ type AvReportTableProps = {
 };
 
 export function AvReportTable({ rows }: AvReportTableProps) {
+  const t = useTranslations("Admin");
   if (rows.length === 0) {
-    return <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">No AV or equipment requests were submitted.</p>;
+    return <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{t("pages.operationalReports.empty.av")}</p>;
   }
 
   return (
@@ -106,9 +112,9 @@ export function AvReportTable({ rows }: AvReportTableProps) {
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
           <tr>
-            <th className="px-4 py-3">Club</th>
-            <th className="px-4 py-3">Club Code</th>
-            <th className="px-4 py-3">Requested AV / Equipment</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.club")}</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.clubCode")}</th>
+            <th className="px-4 py-3">{t("pages.operationalReports.table.requestedItems")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">

@@ -1,14 +1,17 @@
 import { UserRole } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { auth } from "../../../auth";
 import { prisma } from "../../../lib/prisma";
+import { AdminPageHeader } from "../_components/admin-page-header";
 
 function formatDateTime(value: Date) {
   return value.toLocaleString();
 }
 
 export default async function AdminAuditPage() {
+  const t = await getTranslations("Admin");
   const session = await auth();
 
   if (!session?.user || session.user.role !== UserRole.SUPER_ADMIN) {
@@ -43,13 +46,16 @@ export default async function AdminAuditPage() {
 
   return (
     <section className="space-y-6">
-      <header className="glass-panel">
-        <p className="hero-kicker">Super Admin Dashboard</p>
-        <h1 className="hero-title mt-3">Audit Log</h1>
-        <p className="hero-copy">
-          Review sensitive operational changes across users, roster workflows, compliance, enrollment, reporting, and storage maintenance.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.audit.eyebrow")}
+        breadcrumbs={[
+          { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+          { label: t("breadcrumbs.compliance"), href: "/admin/compliance" },
+          { label: t("breadcrumbs.audit") },
+        ]}
+        title={t("pages.audit.title")}
+        description={t("pages.audit.description")}
+      />
 
       <article className="glass-panel">
         {auditLogs.length === 0 ? (

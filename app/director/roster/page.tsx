@@ -1,4 +1,5 @@
 import { createRosterYear, executeYearlyRollover } from "../../actions/roster-actions";
+import { getTranslations } from "next-intl/server";
 import { getManagedClubContext } from "../../../lib/club-management";
 import { decryptMedicalFields } from "../../../lib/medical-data";
 import { prisma } from "../../../lib/prisma";
@@ -11,6 +12,7 @@ export default async function DirectorRosterPage({
 }: {
   searchParams?: Promise<{ clubId?: string }>;
 }) {
+  const t = await getTranslations("Director");
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
@@ -38,10 +40,8 @@ export default async function DirectorRosterPage({
   if (!club) {
     return (
       <section className="glass-panel">
-        <h2 className="text-xl font-semibold">Club not found</h2>
-        <p className="mt-2 text-sm">
-          The selected club could not be loaded for roster management.
-        </p>
+        <h2 className="text-xl font-semibold">{t("common.clubNotFound")}</h2>
+        <p className="mt-2 text-sm">{t("roster.clubNotFoundDescription")}</p>
       </section>
     );
   }
@@ -61,23 +61,21 @@ export default async function DirectorRosterPage({
   return (
     <section className="space-y-6">
       <div className="glass-panel">
-        <p className="hero-kicker">Roster Management</p>
-        <h1 className="hero-title mt-3">
-          {club.name}
-        </h1>
-        <p className="hero-copy">
-          Review this year&apos;s active roster, update member details, and run your annual rollover.
-        </p>
+        <p className="hero-kicker">{t("roster.eyebrow")}</p>
+        <h1 className="hero-title mt-3">{club.name}</h1>
+        <p className="hero-copy">{t("roster.description")}</p>
       </div>
 
       {canRollover && previousYearCandidate ? (
         <article className="glass-panel">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-indigo-900">Start yearly rollover</h2>
+              <h2 className="text-lg font-semibold text-indigo-900">{t("roster.startRollover")}</h2>
               <p className="mt-1 text-sm text-indigo-800">
-                No active roster was found for {CURRENT_YEAR_LABEL}. Copy active members from
-                {" "}{previousYearCandidate.yearLabel} into a new active roster year.
+                {t("roster.rolloverDescription", {
+                  year: CURRENT_YEAR_LABEL,
+                  previousYear: previousYearCandidate.yearLabel,
+                })}
               </p>
             </div>
             <form
@@ -90,7 +88,7 @@ export default async function DirectorRosterPage({
                 type="submit"
                 className="btn-primary"
               >
-                Run {CURRENT_YEAR_LABEL} Rollover
+                {t("roster.runRollover", { year: CURRENT_YEAR_LABEL })}
               </button>
             </form>
           </div>
@@ -100,14 +98,14 @@ export default async function DirectorRosterPage({
       {selectedRosterYear ? (
         <>
           <div className="glass-card">
-            <p className="metric-label">Active Roster Year</p>
+            <p className="metric-label">{t("roster.activeRosterYear")}</p>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <h2 className="text-2xl font-semibold text-slate-900">{selectedRosterYear.yearLabel}</h2>
               <span className="status-chip-success">
-                {selectedRosterYear.isActive ? "Active" : "Archived"}
+                {selectedRosterYear.isActive ? t("common.active") : t("common.archived")}
               </span>
               <span className="status-chip-neutral">
-                {selectedRosterYear.members.length} Active Members
+                {t("roster.activeMembers", { count: selectedRosterYear.members.length })}
               </span>
             </div>
           </div>
@@ -152,9 +150,9 @@ export default async function DirectorRosterPage({
         </>
       ) : (
         <article className="empty-state">
-          <h2 className="text-lg font-semibold text-slate-900">No roster years available</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t("roster.noRosterYears")}</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Create your first roster year for {CURRENT_YEAR_LABEL}, then start adding members.
+            {t("roster.noRosterYearsDescription", { year: CURRENT_YEAR_LABEL })}
           </p>
           <form
             className="mt-4"
@@ -167,7 +165,7 @@ export default async function DirectorRosterPage({
               type="submit"
               className="btn-primary"
             >
-              Create {CURRENT_YEAR_LABEL} Roster Year
+              {t("roster.createRosterYear", { year: CURRENT_YEAR_LABEL })}
             </button>
           </form>
         </article>

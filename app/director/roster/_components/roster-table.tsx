@@ -2,6 +2,7 @@
 
 import { Gender, MemberRole } from "@prisma/client";
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { saveRosterMember } from "../../../actions/roster-actions";
 
@@ -80,6 +81,7 @@ function hasMissingRequiredConsent(member: RosterMemberRow) {
 }
 
 export function RosterTable({ rosterYearId, managedClubId, members }: RosterTableProps) {
+  const t = useTranslations("Director");
   const [modalState, setModalState] = useState<ModalState | null>(null);
 
   const sortedMembers = useMemo(
@@ -99,15 +101,15 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="section-title">Roster Members</h2>
-          <p className="section-copy">Manage the active members for the current roster year.</p>
+          <h2 className="section-title">{t("rosterTable.title")}</h2>
+          <p className="section-copy">{t("rosterTable.description")}</p>
         </div>
         <button
           type="button"
           onClick={() => setModalState({ mode: "create", member: null })}
           className="btn-primary"
         >
-          Add Member
+          {t("rosterTable.addMember")}
         </button>
       </div>
 
@@ -116,17 +118,17 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
           <thead>
             <tr>
               {[
-                "Name",
-                "Tags",
-                "Role",
-                "Background Check",
-                "Consents",
-                "Age",
-                "Gender",
-                "Medical",
-                "Dietary",
-                "Master Guide",
-                "Actions",
+                t("rosterTable.headers.name"),
+                t("rosterTable.headers.tags"),
+                t("rosterTable.headers.role"),
+                t("rosterTable.headers.backgroundCheck"),
+                t("rosterTable.headers.consents"),
+                t("rosterTable.headers.age"),
+                t("rosterTable.headers.gender"),
+                t("rosterTable.headers.medical"),
+                t("rosterTable.headers.dietary"),
+                t("rosterTable.headers.masterGuide"),
+                t("rosterTable.headers.actions"),
               ].map((header) => (
                 <th
                   key={header}
@@ -141,7 +143,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
             {sortedMembers.length === 0 ? (
               <tr>
                 <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
-                  No active members found in this roster year yet.
+                  {t("rosterTable.empty")}
                 </td>
               </tr>
             ) : (
@@ -157,23 +159,23 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
-                        {member.isMedicalPersonnel ? <Badge label="Medical" tone="good" /> : null}
-                        {member.isFirstTime ? <Badge label="1st Year" tone="warn" /> : null}
+                        {member.isMedicalPersonnel ? <Badge label={t("rosterTable.badges.medical")} tone="good" /> : null}
+                        {member.isFirstTime ? <Badge label={t("rosterTable.badges.firstYear")} tone="warn" /> : null}
                         {!member.isMedicalPersonnel && !member.isFirstTime ? <Badge label="—" tone="neutral" /> : null}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{member.memberRole.replaceAll("_", " ")}</td>
                     <td className="px-4 py-3">
                       {!requiresCheck ? (
-                        <Badge label="Not Required" tone="neutral" />
+                        <Badge label={t("rosterTable.badges.notRequired")} tone="neutral" />
                       ) : missingClearance ? (
-                        <Badge label="Missing Clearance" tone="danger" />
+                        <Badge label={t("rosterTable.badges.missingClearance")} tone="danger" />
                       ) : (
                         <Badge
                           label={
                             member.backgroundCheckCleared
-                              ? `Cleared ${formatDateLabel(member.backgroundCheckDate)}`
-                              : `Date Logged ${formatDateLabel(member.backgroundCheckDate)}`
+                              ? t("rosterTable.badges.cleared", { date: formatDateLabel(member.backgroundCheckDate) })
+                              : t("rosterTable.badges.dateLogged", { date: formatDateLabel(member.backgroundCheckDate) })
                           }
                           tone="good"
                         />
@@ -181,11 +183,11 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     </td>
                     <td className="px-4 py-3">
                       {missingConsent ? (
-                        <span className="status-chip-warning" title="Missing one or more required consents">
-                          ⚠️ Missing
+                        <span className="status-chip-warning" title={t("rosterTable.missingConsentsTitle")}>
+                          {t("rosterTable.badges.missing")}
                         </span>
                       ) : (
-                        <Badge label="Complete" tone="good" />
+                        <Badge label={t("rosterTable.badges.complete")} tone="good" />
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{member.ageAtStart ?? "—"}</td>
@@ -193,13 +195,13 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                       {member.gender ? member.gender.replaceAll("_", " ") : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      {member.medicalFlags ? <Badge label="Flagged" tone="warn" /> : <Badge label="None" tone="neutral" />}
+                      {member.medicalFlags ? <Badge label={t("rosterTable.badges.flagged")} tone="warn" /> : <Badge label={t("common.none")} tone="neutral" />}
                     </td>
                     <td className="px-4 py-3">
-                      {member.dietaryRestrictions ? <Badge label="Yes" tone="warn" /> : <Badge label="None" tone="neutral" />}
+                      {member.dietaryRestrictions ? <Badge label={t("common.yes")} tone="warn" /> : <Badge label={t("common.none")} tone="neutral" />}
                     </td>
                     <td className="px-4 py-3">
-                      {member.masterGuide ? <Badge label="Certified" tone="good" /> : <Badge label="No" tone="neutral" />}
+                      {member.masterGuide ? <Badge label={t("rosterTable.badges.certified")} tone="good" /> : <Badge label={t("common.no")} tone="neutral" />}
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -207,7 +209,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                         onClick={() => setModalState({ mode: "edit", member })}
                         className="btn-secondary px-3 py-1.5 text-xs"
                       >
-                        Edit
+                        {t("rosterTable.edit")}
                       </button>
                     </td>
                   </tr>
@@ -224,7 +226,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
             <div className="glass-modal flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden sm:max-h-[calc(100vh-4rem)]">
               <div className="flex items-center justify-between border-b border-white/50 px-6 py-4">
                 <h3 className="text-lg font-semibold text-slate-900">
-                  {modalState.mode === "create" ? "Add roster member" : "Edit roster member"}
+                  {modalState.mode === "create" ? t("rosterTable.modal.addTitle") : t("rosterTable.modal.editTitle")}
                 </h3>
                 <button
                   type="button"
@@ -243,7 +245,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
                   <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  First Name
+                  {t("rosterTable.form.firstName")}
                   <input
                     name="firstName"
                     required
@@ -253,7 +255,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Last Name
+                  {t("rosterTable.form.lastName")}
                   <input
                     name="lastName"
                     required
@@ -263,7 +265,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Role
+                  {t("rosterTable.form.role")}
                   <select
                     name="memberRole"
                     required
@@ -279,7 +281,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Age
+                  {t("rosterTable.form.age")}
                   <input
                     type="number"
                     min={0}
@@ -290,13 +292,13 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Gender
+                  {t("rosterTable.form.gender")}
                   <select
                     name="gender"
                     defaultValue={modalState.member?.gender ?? ""}
                     className="select-glass"
                   >
-                    <option value="">Prefer not to say</option>
+                    <option value="">{t("rosterTable.form.preferNotToSay")}</option>
                     {genderOptions.map((gender) => (
                       <option key={gender} value={gender}>
                         {gender.replaceAll("_", " ")}
@@ -306,7 +308,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Date of Birth
+                  {t("rosterTable.form.dateOfBirth")}
                   <input
                     type="date"
                     name="dateOfBirth"
@@ -316,18 +318,18 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Background Check Date
+                  {t("rosterTable.form.backgroundCheckDate")}
                   <input
                     type="date"
                     name="backgroundCheckDate"
                     defaultValue={toDateInputValue(modalState.member?.backgroundCheckDate ?? null)}
                     className="input-glass"
                   />
-                  <p className="text-xs font-normal text-slate-500">Required for staff, directors, and counselors.</p>
+                  <p className="text-xs font-normal text-slate-500">{t("rosterTable.form.backgroundCheckHelp")}</p>
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-                  Medical Flags
+                  {t("rosterTable.form.medicalFlags")}
                   <input
                     name="medicalFlags"
                     defaultValue={modalState.member?.medicalFlags ?? ""}
@@ -336,7 +338,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-                  Dietary Restrictions
+                  {t("rosterTable.form.dietaryRestrictions")}
                   <input
                     name="dietaryRestrictions"
                     defaultValue={modalState.member?.dietaryRestrictions ?? ""}
@@ -345,7 +347,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Emergency Contact Name
+                  {t("rosterTable.form.emergencyContactName")}
                   <input
                     name="emergencyContactName"
                     defaultValue={modalState.member?.emergencyContactName ?? ""}
@@ -354,7 +356,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700">
-                  Emergency Contact Phone
+                  {t("rosterTable.form.emergencyContactPhone")}
                   <input
                     name="emergencyContactPhone"
                     defaultValue={modalState.member?.emergencyContactPhone ?? ""}
@@ -369,7 +371,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     defaultChecked={modalState.member?.isFirstTime ?? false}
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  First Time Member
+                  {t("rosterTable.form.firstTimeMember")}
                 </label>
 
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -379,7 +381,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     defaultChecked={modalState.member?.isMedicalPersonnel ?? false}
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  Medical Personnel
+                  {t("rosterTable.form.medicalPersonnel")}
                 </label>
 
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -389,7 +391,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     defaultChecked={modalState.member?.masterGuide ?? false}
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  Master Guide
+                  {t("rosterTable.form.masterGuide")}
                 </label>
 
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -399,21 +401,21 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     defaultChecked={modalState.member?.isActive ?? true}
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  Active Member
+                  {t("rosterTable.form.activeMember")}
                 </label>
               </div>
 
               <section className="glass-subsection space-y-4">
                 <div>
-                  <h4 className="text-base font-semibold text-slate-900">Agreements &amp; Medical</h4>
+                  <h4 className="text-base font-semibold text-slate-900">{t("rosterTable.form.agreementsTitle")}</h4>
                   <p className="text-sm text-slate-600">
-                    Capture parent/guardian consent confirmations and key health record details.
+                    {t("rosterTable.form.agreementsDescription")}
                   </p>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="space-y-1 text-sm font-medium text-slate-700">
-                    Insurance Company
+                    {t("rosterTable.form.insuranceCompany")}
                     <input
                       name="insuranceCompany"
                       defaultValue={modalState.member?.insuranceCompany ?? ""}
@@ -422,7 +424,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                   </label>
 
                   <label className="space-y-1 text-sm font-medium text-slate-700">
-                    Insurance Policy Number
+                    {t("rosterTable.form.insurancePolicyNumber")}
                     <input
                       name="insurancePolicyNumber"
                       defaultValue={modalState.member?.insurancePolicyNumber ?? ""}
@@ -431,7 +433,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                   </label>
 
                   <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-                    Last Tetanus Date
+                    {t("rosterTable.form.lastTetanusDate")}
                     <input
                       type="date"
                       name="lastTetanusDate"
@@ -442,7 +444,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </div>
 
                 <div className="alert-warning space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Required Consents</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">{t("rosterTable.form.requiredConsents")}</p>
 
                   <label className="flex items-start gap-3 text-sm text-slate-700">
                     <input
@@ -453,8 +455,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                       className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span>
-                      <strong>Photo/Video Release:</strong> I authorize Pathfinder activities to capture and use photos/videos
-                      of my child for club communications and ministry promotion.
+                      <strong>{t("rosterTable.form.photoReleaseLabel")}</strong> {t("rosterTable.form.photoReleaseText")}
                     </span>
                   </label>
 
@@ -467,8 +468,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                       className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span>
-                      <strong>Medical Treatment Consent:</strong> I authorize staff to secure emergency medical care when
-                      I cannot be reached, including transport and treatment as needed.
+                      <strong>{t("rosterTable.form.medicalConsentLabel")}</strong> {t("rosterTable.form.medicalConsentText")}
                     </span>
                   </label>
 
@@ -481,8 +481,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                       className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     <span>
-                      <strong>Membership Agreement:</strong> I agree to Pathfinder participation standards, expectations,
-                      and parent/guardian responsibilities for this membership year.
+                      <strong>{t("rosterTable.form.membershipAgreementLabel")}</strong> {t("rosterTable.form.membershipAgreementText")}
                     </span>
                   </label>
                 </div>
@@ -495,13 +494,13 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     onClick={() => setModalState(null)}
                     className="btn-secondary"
                   >
-                    Cancel
+                    {t("rosterTable.form.cancel")}
                   </button>
                   <button
                     type="submit"
                     className="btn-primary"
                   >
-                    {modalState.mode === "create" ? "Create Member" : "Save Changes"}
+                    {modalState.mode === "create" ? t("rosterTable.form.createMember") : t("rosterTable.form.saveChanges")}
                   </button>
                 </div>
               </form>

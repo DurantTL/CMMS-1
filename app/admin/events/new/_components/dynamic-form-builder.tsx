@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { type EventFieldConditionalOperator } from "../../../../../lib/event-form-config";
@@ -72,6 +73,7 @@ function toSuggestedKey(label: string) {
 }
 
 export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps) {
+  const t = useTranslations("Admin");
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({});
 
   const groups = useMemo(
@@ -200,28 +202,28 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
               onClick={() => moveField(field.id, "up")}
               className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
             >
-              Up
+              {t("pages.dynamicBuilder.up")}
             </button>
             <button
               type="button"
               onClick={() => moveField(field.id, "down")}
               className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
             >
-              Down
+              {t("pages.dynamicBuilder.down")}
             </button>
             <button
               type="button"
               onClick={() => removeField(field.id)}
               className="text-sm font-medium text-rose-600 hover:text-rose-700"
             >
-              Remove
+              {t("pages.dynamicBuilder.remove")}
             </button>
           </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <label className="space-y-1 text-sm text-slate-700">
-            <span>Key</span>
+            <span>{t("pages.dynamicBuilder.key")}</span>
             <input
               type="text"
               value={field.key}
@@ -232,7 +234,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
           </label>
 
           <label className="space-y-1 text-sm text-slate-700">
-            <span>Label</span>
+            <span>{t("pages.dynamicBuilder.label")}</span>
             <input
               type="text"
               value={field.label}
@@ -253,19 +255,19 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
         </div>
 
         <label className="block space-y-1 text-sm text-slate-700">
-          <span>Description (optional)</span>
+          <span>{t("pages.dynamicBuilder.descriptionLabel")}</span>
           <input
             type="text"
             value={field.description}
             onChange={(event) => updateField(field.id, { description: event.currentTarget.value })}
-            placeholder="Shown to clubs before they submit registration"
+            placeholder={t("pages.dynamicBuilder.descriptionPlaceholder")}
             className="w-full rounded-lg border border-slate-300 px-3 py-2"
           />
         </label>
 
         <div className="grid gap-3 md:grid-cols-3">
           <label className="space-y-1 text-sm text-slate-700">
-            <span>Type</span>
+            <span>{t("pages.dynamicBuilder.type")}</span>
             <select
               value={field.type}
               onChange={(event) => {
@@ -283,21 +285,21 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               disabled={field.parentFieldId !== null}
             >
-              <option value="SHORT_TEXT">SHORT_TEXT</option>
-              <option value="LONG_TEXT">LONG_TEXT</option>
-              <option value="DATE">DATE</option>
-              <option value="SINGLE_SELECT">SINGLE_SELECT</option>
-              <option value="NUMBER">NUMBER</option>
-              <option value="MULTI_SELECT">MULTI_SELECT</option>
-              <option value="BOOLEAN">BOOLEAN</option>
-              <option value="ROSTER_SELECT">ROSTER_SELECT</option>
-              <option value="ROSTER_MULTI_SELECT">ROSTER_MULTI_SELECT</option>
-              {field.parentFieldId === null ? <option value="FIELD_GROUP">FIELD_GROUP</option> : null}
+              <option value="SHORT_TEXT">{t("pages.dynamicBuilder.typeOptions.SHORT_TEXT")}</option>
+              <option value="LONG_TEXT">{t("pages.dynamicBuilder.typeOptions.LONG_TEXT")}</option>
+              <option value="DATE">{t("pages.dynamicBuilder.typeOptions.DATE")}</option>
+              <option value="SINGLE_SELECT">{t("pages.dynamicBuilder.typeOptions.SINGLE_SELECT")}</option>
+              <option value="NUMBER">{t("pages.dynamicBuilder.typeOptions.NUMBER")}</option>
+              <option value="MULTI_SELECT">{t("pages.dynamicBuilder.typeOptions.MULTI_SELECT")}</option>
+              <option value="BOOLEAN">{t("pages.dynamicBuilder.typeOptions.BOOLEAN")}</option>
+              <option value="ROSTER_SELECT">{t("pages.dynamicBuilder.typeOptions.ROSTER_SELECT")}</option>
+              <option value="ROSTER_MULTI_SELECT">{t("pages.dynamicBuilder.typeOptions.ROSTER_MULTI_SELECT")}</option>
+              {field.parentFieldId === null ? <option value="FIELD_GROUP">{t("pages.dynamicBuilder.typeOptions.FIELD_GROUP")}</option> : null}
             </select>
           </label>
 
           <label className="space-y-1 text-sm text-slate-700">
-            <span>Scope</span>
+            <span>{t("pages.dynamicBuilder.scope")}</span>
             <select
               value={isGroup ? "GLOBAL" : field.fieldScope}
               onChange={(event) =>
@@ -308,8 +310,8 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
               disabled={isGroup}
             >
-              <option value="GLOBAL">GLOBAL</option>
-              <option value="ATTENDEE">ATTENDEE</option>
+              <option value="GLOBAL">{t("pages.dynamicBuilder.scopeOptions.GLOBAL")}</option>
+              <option value="ATTENDEE">{t("pages.dynamicBuilder.scopeOptions.ATTENDEE")}</option>
             </select>
           </label>
 
@@ -320,13 +322,13 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
               disabled={isGroup}
               onChange={(event) => updateField(field.id, { isRequired: event.currentTarget.checked })}
             />
-            Required
+            {t("pages.dynamicBuilder.required")}
           </label>
         </div>
 
         {typeAllowsOptions(field.type) ? (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-700">Options</p>
+            <p className="text-sm font-medium text-slate-700">{t("pages.dynamicBuilder.options")}</p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -337,7 +339,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                     [field.id]: event.currentTarget.value,
                   }))
                 }
-                placeholder="Add option"
+                placeholder={t("pages.dynamicBuilder.addOptionPlaceholder")}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
               <button
@@ -345,12 +347,12 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                 onClick={() => addOption(field)}
                 className="rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
               >
-                Add
+                {t("pages.dynamicBuilder.add")}
               </button>
             </div>
 
             {field.options.length === 0 ? (
-              <p className="text-xs text-slate-500">Add at least one option for this question.</p>
+              <p className="text-xs text-slate-500">{t("pages.dynamicBuilder.addAtLeastOneOption")}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {field.options.map((option) => (
@@ -371,9 +373,11 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
         <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-slate-700">Conditional Visibility</p>
+              <p className="text-sm font-medium text-slate-700">{t("pages.dynamicBuilder.conditionalVisibility")}</p>
               <p className="text-xs text-slate-500">
-                Show this {isGroup ? "section" : "field"} only when a global question matches the condition.
+                {isGroup
+                  ? t("pages.dynamicBuilder.conditionalDescriptionSection")
+                  : t("pages.dynamicBuilder.conditionalDescriptionField")}
               </p>
             </div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -390,20 +394,20 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                   })
                 }
               />
-              Enabled
+              {t("pages.dynamicBuilder.enabled")}
             </label>
           </div>
 
           {hasConditionalVisibility ? (
             <div className="grid gap-3 md:grid-cols-3">
               <label className="space-y-1 text-sm text-slate-700">
-                <span>Depends On</span>
+                <span>{t("pages.dynamicBuilder.dependsOn")}</span>
                 <select
                   value={field.conditionalFieldKey}
                   onChange={(event) => updateField(field.id, { conditionalFieldKey: event.currentTarget.value })}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2"
                 >
-                  <option value="">Select a global field</option>
+                  <option value="">{t("pages.dynamicBuilder.selectGlobalField")}</option>
                   {globalDependencyOptions
                     .filter((candidate) => candidate.id !== field.id)
                     .map((candidate) => (
@@ -415,7 +419,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
               </label>
 
               <label className="space-y-1 text-sm text-slate-700">
-                <span>Operator</span>
+                <span>{t("pages.dynamicBuilder.operator")}</span>
                 <select
                   value={field.conditionalOperator || "equals"}
                   onChange={(event) =>
@@ -425,27 +429,27 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                   }
                   className="w-full rounded-lg border border-slate-300 px-3 py-2"
                 >
-                  <option value="equals">equals</option>
-                  <option value="not_equals">not equals</option>
-                  <option value="includes">includes</option>
-                  <option value="not_includes">not includes</option>
-                  <option value="truthy">has a value</option>
-                  <option value="falsy">is blank</option>
+                  <option value="equals">{t("pages.dynamicBuilder.operators.equals")}</option>
+                  <option value="not_equals">{t("pages.dynamicBuilder.operators.not_equals")}</option>
+                  <option value="includes">{t("pages.dynamicBuilder.operators.includes")}</option>
+                  <option value="not_includes">{t("pages.dynamicBuilder.operators.not_includes")}</option>
+                  <option value="truthy">{t("pages.dynamicBuilder.operators.truthy")}</option>
+                  <option value="falsy">{t("pages.dynamicBuilder.operators.falsy")}</option>
                 </select>
               </label>
 
               {field.conditionalOperator === "truthy" || field.conditionalOperator === "falsy" ? (
                 <div className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-500">
-                  No comparison value needed for this operator.
+                  {t("pages.dynamicBuilder.noComparisonValue")}
                 </div>
               ) : (
                 <label className="space-y-1 text-sm text-slate-700">
-                  <span>Value</span>
+                  <span>{t("pages.dynamicBuilder.value")}</span>
                   <input
                     type="text"
                     value={field.conditionalValue}
                     onChange={(event) => updateField(field.id, { conditionalValue: event.currentTarget.value })}
-                    placeholder="yes"
+                    placeholder={t("pages.dynamicBuilder.valuePlaceholder")}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2"
                   />
                 </label>
@@ -460,7 +464,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
             onClick={() => addChildField(field.id)}
             className="rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
           >
-            Add Child Field
+            {t("pages.dynamicBuilder.addChildField")}
           </button>
         ) : null}
       </article>
@@ -473,9 +477,9 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Dynamic Registration Questions</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{t("pages.dynamicBuilder.title")}</h3>
           <p className="text-sm text-slate-600">
-            Create top-level questions or grouped questions with nested child fields.
+            {t("pages.dynamicBuilder.description")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -484,25 +488,25 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
             onClick={addTopLevelQuestion}
             className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
           >
-            Add Question
+            {t("pages.dynamicBuilder.addQuestion")}
           </button>
           <button
             type="button"
             onClick={addFieldGroup}
             className="rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
           >
-            Add Field Group
+            {t("pages.dynamicBuilder.addFieldGroup")}
           </button>
         </div>
       </div>
 
       {!hasFields ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
-          No dynamic fields added yet.
+          {t("pages.dynamicBuilder.empty")}
         </div>
       ) : null}
 
-      {rootQuestions.map((field, index) => renderFieldCard(field, `Question ${index + 1}`))}
+      {rootQuestions.map((field, index) => renderFieldCard(field, t("pages.dynamicBuilder.questionLabel", { number: index + 1 })))}
 
       {groups.map((group, index) => {
         const children = fields.filter((field) => field.parentFieldId === group.id);
@@ -512,15 +516,15 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
             key={group.id}
             className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50/40 p-3"
           >
-            {renderFieldCard(group, `Field Group ${index + 1}`)}
+            {renderFieldCard(group, t("pages.dynamicBuilder.fieldGroupLabel", { number: index + 1 }))}
             <div className="space-y-3 pl-0 md:pl-4">
               {children.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-indigo-200 bg-white p-3 text-xs text-slate-500">
-                  Add child fields to this group.
+                  {t("pages.dynamicBuilder.addChildFieldsHint")}
                 </p>
               ) : (
                 children.map((child, childIndex) =>
-                  renderFieldCard(child, `Child ${childIndex + 1}`),
+                  renderFieldCard(child, t("pages.dynamicBuilder.childLabel", { number: childIndex + 1 })),
                 )
               )}
             </div>

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FormFieldScope, FormFieldType, UserRole } from "@prisma/client";
+import { EventMode, FormFieldScope, FormFieldType, UserRole } from "@prisma/client";
 
 import { createEventFromInput } from "../lib/data/event-admin";
 import { buildStoredEventFieldOptions } from "../lib/event-form-config";
@@ -24,6 +24,7 @@ test("events created from a stored template snapshot reuse the existing event an
   });
 
   const templateSnapshot = buildEventTemplateSnapshot({
+    eventMode: EventMode.CLASS_ASSIGNMENT,
     name: "Camporee Template",
     description: "Reusable event setup",
     startsAt: new Date("2026-04-10T12:00:00.000Z"),
@@ -83,6 +84,7 @@ test("events created from a stored template snapshot reuse the existing event an
     await createEventFromInput(
       tx,
       {
+        eventMode: parsedSnapshot.eventMode,
         name: "Spring Camporee 2027",
         description: parsedSnapshot.description,
         startsAt: new Date("2027-04-09T12:00:00.000Z"),
@@ -130,6 +132,7 @@ test("events created from a stored template snapshot reuse the existing event an
   });
 
   assert.equal(createdEvent.name, "Spring Camporee 2027");
+  assert.equal(createdEvent.eventMode, EventMode.CLASS_ASSIGNMENT);
   assert.equal(createdEvent.dynamicFields.length, 2);
   assert.equal(createdEvent.dynamicFields[0]?.key, "needs_power");
   assert.deepEqual(createdEvent.dynamicFields[0]?.options, ["Yes", "No"]);

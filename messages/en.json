@@ -18,5 +18,847 @@
     "language": "Language",
     "platformTitle": "Club Management & Event Registration",
     "conference": "Iowa-Missouri Conference"
+  },
+  "Admin": {
+    "roles": {
+      "SUPER_ADMIN": "Super Admin",
+      "CLUB_DIRECTOR": "Club Director",
+      "STAFF_TEACHER": "Staff Teacher",
+      "STUDENT_PARENT": "Student Parent"
+    },
+    "shell": {
+      "brand": {
+        "eyebrow": "CMMS Admin",
+        "title": "Conference Management"
+      },
+      "mobileMenu": "Menu",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search events, clubs, users, or reports",
+      "notifications": "Notifications",
+      "quickCreate": "Quick Create",
+      "quickCreateItems": {
+        "newEvent": "New Event",
+        "newClub": "New Club",
+        "newUser": "New User"
+      },
+      "userMenu": {
+        "dashboard": "Dashboard",
+        "directorWorkspace": "Director Workspace",
+        "signOutHint": "Use the global header to sign out."
+      },
+      "contextNavAriaLabel": "Contextual admin navigation",
+      "closeNavigation": "Close navigation",
+      "sections": {
+        "dashboard": {
+          "label": "Dashboard",
+          "description": "Conference-wide health and activity."
+        },
+        "clubs": {
+          "label": "Clubs",
+          "description": "Club operations, people, and nominations."
+        },
+        "events": {
+          "label": "Events",
+          "description": "Event setup, registration, classes, and logistics."
+        },
+        "reports": {
+          "label": "Reports",
+          "description": "Conference and event reporting views."
+        },
+        "admin": {
+          "label": "Admin",
+          "description": "Platform controls, audits, and storage."
+        }
+      },
+      "sidebar": {
+        "dashboard": {
+          "heading": "Conference Ops",
+          "description": "Top-level metrics, health signals, and active event windows.",
+          "items": {
+            "overview": {
+              "label": "Conference Overview",
+              "description": "Metrics, system health, and event timeline."
+            }
+          }
+        },
+        "clubs": {
+          "heading": "Club Operations",
+          "description": "Manage clubs, conference users, and nomination workflows.",
+          "items": {
+            "directory": {
+              "label": "Club Directory",
+              "description": "Conference club list and director workspaces."
+            },
+            "users": {
+              "label": "User Directory",
+              "description": "Accounts, roles, memberships, and portal links."
+            },
+            "nominations": {
+              "label": "Nominations",
+              "description": "Awards review and winner selection queue."
+            }
+          }
+        },
+        "events": {
+          "heading": "Event Operations",
+          "description": "Build events, manage templates, and run event logistics.",
+          "items": {
+            "allEvents": {
+              "label": "All Events",
+              "description": "Event windows, status, and overseer links."
+            },
+            "createEvent": {
+              "label": "Create Event",
+              "description": "Create a new conference event from scratch or template."
+            },
+            "catalog": {
+              "label": "Class Catalog",
+              "description": "Conference class and honor catalog."
+            }
+          }
+        },
+        "reports": {
+          "heading": "Reporting",
+          "description": "Review conference submissions and event-level exports.",
+          "items": {
+            "submitted": {
+              "label": "Submitted Reports",
+              "description": "Monthly and year-end club reports."
+            }
+          }
+        },
+        "admin": {
+          "heading": "Platform Controls",
+          "description": "Run compliance tools, review audit activity, and maintain storage.",
+          "items": {
+            "compliance": {
+              "label": "Compliance Sync",
+              "description": "Sterling sync preview and apply tools."
+            },
+            "audit": {
+              "label": "Audit Log",
+              "description": "Sensitive change tracking across the platform."
+            },
+            "storage": {
+              "label": "Storage",
+              "description": "Private upload usage and purge tooling."
+            }
+          }
+        },
+        "eventContext": {
+          "heading": "Event Workspace",
+          "description": "Contextual tools for the selected event.",
+          "items": {
+            "allEvents": {
+              "label": "All Events",
+              "description": "Return to the full event index."
+            },
+            "overview": {
+              "label": "Overview",
+              "description": "Event summary, registrations, and exports."
+            },
+            "edit": {
+              "label": "Edit Event",
+              "description": "Core details and registration form builder."
+            },
+            "classes": {
+              "label": "Class Offerings",
+              "description": "Catalog assignments, teachers, and capacity."
+            },
+            "checkin": {
+              "label": "Gate Check-in",
+              "description": "Arrival workflow and form readiness."
+            },
+            "camporee": {
+              "label": "Camporee",
+              "description": "Competition scoring and standings."
+            },
+            "operational": {
+              "label": "Operational Reports",
+              "description": "Spiritual, duty, and AV exports."
+            },
+            "compliance": {
+              "label": "Compliance Report",
+              "description": "Flagged attendees missing clearance."
+            },
+            "medical": {
+              "label": "Medical Manifest",
+              "description": "Dietary and medical event manifests."
+            }
+          }
+        }
+      }
+    },
+    "breadcrumbs": {
+      "admin": "Admin",
+      "dashboard": "Dashboard",
+      "clubs": "Clubs",
+      "events": "Events",
+      "reports": "Reports",
+      "users": "Users",
+      "nominations": "Nominations",
+      "catalog": "Class Catalog",
+      "compliance": "Compliance Sync",
+      "storage": "Storage",
+      "audit": "Audit Log",
+      "createEvent": "Create Event",
+      "edit": "Edit",
+      "classes": "Classes",
+      "checkin": "Check-in",
+      "camporee": "Camporee",
+      "operationalReports": "Operational Reports",
+      "complianceReport": "Compliance Report",
+      "medicalManifest": "Medical Manifest"
+    },
+    "actions": {
+      "createEvent": "Create Event",
+      "reviewReports": "Review Reports",
+      "manageTemplates": "Manage Templates",
+      "openUsers": "Open Users",
+      "backToClubs": "Back to Clubs",
+      "sortByClub": "Sort by Club",
+      "sortByMonth": "Sort by Month",
+      "backToEvents": "Back to Events",
+      "clearTemplate": "Clear Template",
+      "backToOverseer": "Back to Overseer",
+      "eventOverview": "Event Overview",
+      "backToDashboard": "Back to Dashboard",
+      "openCheckin": "Open Check-in",
+      "downloadMasterAttendeesCsv": "Download Master Attendees CSV",
+      "operationalReports": "Operational Reports",
+      "complianceDashboard": "Compliance Dashboard",
+      "camporeeScoring": "Camporee Scoring",
+      "backToEvent": "Back to Event",
+      "downloadList": "Download List",
+      "exportCsv": "Export to CSV",
+      "printManifest": "Print Manifest"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "OPEN": "Open",
+      "UPCOMING": "Upcoming",
+      "CLOSED": "Closed",
+      "DRAFT": "Draft",
+      "SUBMITTED": "Submitted",
+      "APPROVED": "Approved",
+      "CHECKED_IN": "Checked In"
+    },
+    "pages": {
+      "dashboard": {
+        "eyebrow": "Super Admin Dashboard",
+        "title": "Conference Overview",
+        "description": "Monitor club participation, conference member totals, and active event windows."
+      },
+      "events": {
+        "eyebrow": "Super Admin",
+        "title": "Event Management",
+        "description": "Review event windows, registration status, and open overseer pages.",
+        "empty": "No events found. Create your first event.",
+        "columns": {
+          "event": "Event",
+          "mode": "Mode",
+          "dates": "Dates",
+          "registration": "Registration",
+          "location": "Location",
+          "clubs": "Clubs",
+          "actions": "Actions"
+        },
+        "buttons": {
+          "openOverseer": "Open Overseer",
+          "edit": "Edit",
+          "classes": "Classes"
+        },
+        "tbd": "TBD"
+      },
+      "clubs": {
+        "eyebrow": "Super Admin",
+        "title": "Club Directory",
+        "description": "Review conference clubs and current participation counts."
+      },
+      "users": {
+        "eyebrow": "Super Admin",
+        "title": "User Directory",
+        "description": "Review account roles, primary club assignments, and student portal links."
+      },
+      "reports": {
+        "eyebrow": "Conference Reporting",
+        "title": "Submitted Reports Review",
+        "description": "Review all submitted monthly and year-end reports from clubs across the Conference.",
+        "monthlyTitle": "Monthly Reports",
+        "monthlyEmpty": "No submitted monthly reports found.",
+        "yearEndTitle": "Year-End Reports",
+        "yearEndEmpty": "No submitted year-end reports found.",
+        "columns": {
+          "club": "Club",
+          "code": "Code",
+          "reportMonth": "Report Month",
+          "meetings": "Meetings",
+          "uniform": "Uniform %",
+          "points": "Points",
+          "submitted": "Submitted",
+          "year": "Year",
+          "friend": "Friend",
+          "companion": "Companion",
+          "explorer": "Explorer",
+          "ranger": "Ranger",
+          "voyager": "Voyager",
+          "guide": "Guide"
+        }
+      },
+      "audit": {
+        "eyebrow": "Super Admin Dashboard",
+        "title": "Audit Log",
+        "description": "Review sensitive operational changes across users, roster workflows, compliance, enrollment, reporting, and storage maintenance."
+      },
+      "nominations": {
+        "eyebrow": "Awards & Nominations",
+        "title": "Nomination Review Queue",
+        "description": "Review submitted nominations and mark them as reviewed or winner selections."
+      },
+      "storage": {
+        "eyebrow": "Platform Controls",
+        "title": "Secure Local Storage",
+        "description": "Monitor and purge Insurance Card files that are stored in private server storage."
+      },
+      "catalog": {
+        "eyebrow": "Super Admin",
+        "title": "Master Class/Honor Catalog",
+        "description": "Manage conference-wide honors, workshops, and prerequisite requirements."
+      },
+      "compliance": {
+        "eyebrow": "Super Admin Dashboard",
+        "title": "Compliance Sync Engine",
+        "description": "Review roster-year readiness, recent sync activity, and Sterling preview/apply results without replacing the existing sync safeguards."
+      },
+      "createEvent": {
+        "eyebrow": "Super Admin",
+        "title": "Create Event",
+        "description": "Build a new event in steps, then define dynamic registration questions or start from a reusable template.",
+        "entry": {
+          "title": "Creation Path",
+          "description": "Choose whether to start from a reusable template or define a new event mode from scratch.",
+          "templateTitle": "Create from Template",
+          "templateDescription": "Load a saved template and inherit its event mode and registration structure.",
+          "blankTitle": "Start Blank",
+          "blankDescription": "Create a new event from scratch and choose the mode that matches its workflow.",
+          "modeTitle": "Blank Event Mode",
+          "modeDescription": "Event mode controls whether registration is club-only, roster-based, or class-assignment ready.",
+          "templateMode": "This template will create a {mode} event.",
+          "selectTemplatePrompt": "Choose a template to continue with the template-based flow."
+        },
+        "templatesTitle": "Event Templates",
+        "templatesDescription": "Templates snapshot the current event wizard fields so future events can reuse the same setup without rebuilding it.",
+        "templatesCount": "{count, plural, one {# template} other {# templates}}",
+        "templatesEmpty": "No event templates saved yet. Fill out the wizard below and save the draft as your first template.",
+        "noDescription": "No description",
+        "dynamicFieldCount": "{count, plural, one {# dynamic field} other {# dynamic fields}}",
+        "loaded": "Loaded",
+        "loadTemplate": "Load Template",
+        "deactivate": "Deactivate",
+        "activate": "Activate",
+        "created": "Event created successfully.",
+        "loadedTemplate": "Loaded template {name} ({mode}). All values below are editable before saving a new event.",
+        "steps": {
+          "step": "Step {number}",
+          "eventBasics": {
+            "title": "Event Basics",
+            "description": "Set event name and start/end dates."
+          },
+          "registration": {
+            "title": "Registration & Location",
+            "description": "Configure registration windows, pricing, and location details."
+          },
+          "questions": {
+            "title": "Dynamic Questions",
+            "description": "Add optional custom form questions for event registrations."
+          }
+        },
+        "wizard": {
+          "eventBasics": "Event Basics",
+          "eventName": "Event Name",
+          "eventNamePlaceholder": "2027 Conference Camporee",
+          "description": "Description (optional)",
+          "descriptionPlaceholder": "Public event description or planning notes",
+          "startsAt": "Starts At",
+          "endsAt": "Ends At",
+          "registrationTitle": "Registration & Location",
+          "registrationOpens": "Registration Opens",
+          "registrationCloses": "Registration Closes",
+          "basePrice": "Base Price (per attendee)",
+          "lateFeePrice": "Late Fee Price (per attendee)",
+          "lateFeeStarts": "Late Fee Starts At",
+          "locationName": "Location Name",
+          "locationNamePlaceholder": "Indian Creek Camp",
+          "locationAddress": "Location Address",
+          "locationAddressPlaceholder": "1234 Camp Rd, City, ST",
+          "saveAsTemplate": "Save As Template",
+          "saveAsTemplateDescription": "Save the current draft as a reusable template. Loaded templates can be updated in place.",
+          "templateName": "Template Name",
+          "templateNamePlaceholder": "Camporee Base Template",
+          "templateDescription": "Template Description (optional)",
+          "templateDescriptionPlaceholder": "Reusable schedule, pricing, and form setup",
+          "templateActive": "Keep this template active for future event creation",
+          "back": "Back",
+          "next": "Next",
+          "updateTemplate": "Update Template",
+          "saveTemplate": "Save Template"
+        },
+        "validation": {
+          "missingTemplate": "Choose an event template or switch to Start Blank.",
+          "missingEventMode": "Select an event mode before creating a blank event.",
+          "missingLabel": "Dynamic field {index} is missing a label.",
+          "missingOptions": "Dynamic field \"{label}\" must include at least one option.",
+          "missingConditionalOperator": "Dynamic field \"{label}\" is missing a conditional operator.",
+          "missingConditionalSource": "Dynamic field \"{label}\" must select a conditional source field.",
+          "missingConditionalValue": "Dynamic field \"{label}\" is missing a conditional value."
+        }
+      },
+      "dynamicBuilder": {
+        "title": "Dynamic Registration Questions",
+        "description": "Create top-level questions or grouped questions with nested child fields.",
+        "addQuestion": "Add Question",
+        "addFieldGroup": "Add Field Group",
+        "empty": "No dynamic fields added yet.",
+        "questionLabel": "Question {number}",
+        "fieldGroupLabel": "Field Group {number}",
+        "childLabel": "Child {number}",
+        "up": "Up",
+        "down": "Down",
+        "remove": "Remove",
+        "key": "Key",
+        "label": "Label",
+        "descriptionLabel": "Description (optional)",
+        "descriptionPlaceholder": "Shown to clubs before they submit registration",
+        "type": "Type",
+        "scope": "Scope",
+        "required": "Required",
+        "options": "Options",
+        "addOptionPlaceholder": "Add option",
+        "add": "Add",
+        "addAtLeastOneOption": "Add at least one option for this question.",
+        "conditionalVisibility": "Conditional Visibility",
+        "conditionalDescriptionField": "Show this field only when a global question matches the condition.",
+        "conditionalDescriptionSection": "Show this section only when a global question matches the condition.",
+        "enabled": "Enabled",
+        "dependsOn": "Depends On",
+        "selectGlobalField": "Select a global field",
+        "operator": "Operator",
+        "value": "Value",
+        "valuePlaceholder": "yes",
+        "noComparisonValue": "No comparison value needed for this operator.",
+        "addChildField": "Add Child Field",
+        "addChildFieldsHint": "Add child fields to this group.",
+        "typeOptions": {
+          "SHORT_TEXT": "Short text",
+          "LONG_TEXT": "Long text",
+          "DATE": "Date",
+          "SINGLE_SELECT": "Single select",
+          "MULTI_SELECT": "Multi select",
+          "BOOLEAN": "Boolean",
+          "NUMBER": "Number",
+          "ROSTER_SELECT": "Roster select",
+          "ROSTER_MULTI_SELECT": "Roster multi-select",
+          "FIELD_GROUP": "Field group"
+        },
+        "scopeOptions": {
+          "GLOBAL": "Global",
+          "ATTENDEE": "Attendee"
+        },
+        "operators": {
+          "equals": "equals",
+          "not_equals": "not equals",
+          "includes": "includes",
+          "not_includes": "not includes",
+          "truthy": "has a value",
+          "falsy": "is blank"
+        }
+      },
+      "operationalReports": {
+        "spiritualTitle": "Baptism / Spiritual List",
+        "spiritualDescription": "Entries pulled from baptism_names and bible_names across all submitted or approved registrations.",
+        "dutyTitle": "Duty / Activity Roster",
+        "dutyDescription": "Clubs grouped by selections in duty_first, duty_second, and special_activity.",
+        "avTitle": "AV & Equipment Requests",
+        "avDescription": "Clubs with AV-related responses and exact equipment details.",
+        "table": {
+          "club": "Club",
+          "clubCode": "Club Code",
+          "formField": "Form Field",
+          "nameResponse": "Name / Response",
+          "dutyActivity": "Duty / Activity",
+          "assignedClubs": "Assigned Clubs",
+          "requestedItems": "Requested AV / Equipment"
+        },
+        "empty": {
+          "spiritual": "No baptism or bible-study names were submitted.",
+          "duty": "No duty or activity selections were submitted.",
+          "av": "No AV or equipment requests were submitted."
+        }
+      },
+      "medical": {
+        "table": {
+          "attendee": "Attendee Name",
+          "age": "Age",
+          "role": "Role",
+          "club": "Club Name",
+          "emergency": "Emergency Contact Info"
+        },
+        "dietaryTitle": "Dietary Restrictions Manifest",
+        "dietaryDetail": "Dietary Restriction",
+        "dietaryEmpty": "No dietary restrictions were reported for submitted or approved registrations.",
+        "medicalTitle": "Medical Flags Manifest",
+        "medicalDetail": "Medical Flag",
+        "medicalEmpty": "No medical flags were reported for submitted or approved registrations."
+      }
+    }
+  },
+  "Director": {
+    "nav": {
+      "eyebrow": "Club Control",
+      "title": "Club Director",
+      "description": "Roster readiness, event workflows, and class coordination.",
+      "sections": {
+        "dashboard": "Dashboard",
+        "events": "Events",
+        "roster": "Roster",
+        "nominations": "Nominations",
+        "tlt": "TLT",
+        "reports": "Reports"
+      }
+    },
+    "common": {
+      "clubNotFound": "Club not found",
+      "locationTbd": "Location TBD",
+      "notStarted": "Not started",
+      "none": "None",
+      "yes": "Yes",
+      "no": "No",
+      "active": "Active",
+      "archived": "Archived",
+      "selected": "{count, plural, one {# selected} other {# selected}}",
+      "prompts": "{count, plural, one {# prompt} other {# prompts}}",
+      "activitiesInMonth": "{count, plural, one {# activity in this month} other {# activities in this month}}",
+      "attendeesCount": "{count, plural, one {# attendee} other {# attendees}}"
+    },
+    "dashboard": {
+      "eyebrow": "Club Director Dashboard",
+      "description": "Manage roster readiness, event registrations, and class workflows from one place.",
+      "clubNotFoundDescription": "The selected club could not be loaded for dashboard workflows.",
+      "viewRoster": "View roster",
+      "continueRegistration": "Continue registration",
+      "metrics": {
+        "activeMembers": "Active members",
+        "activeMembersCaption": "Current active roster year.",
+        "upcomingEvents": "Upcoming events",
+        "upcomingEventsCaption": "Conference events open or upcoming.",
+        "submittedRegistrations": "Submitted registrations",
+        "submittedRegistrationsCaption": "Finalized by your club.",
+        "draftRegistrations": "Draft registrations",
+        "draftRegistrationsCaption": "In progress and editable.",
+        "activitiesThisMonth": "Activities this month",
+        "activitiesThisMonthCaption": "Logged for monthly report auto-fill.",
+        "latestMonthlyReport": "Latest monthly report",
+        "latestMonthlyReportEmpty": "No monthly reports submitted yet.",
+        "latestMonth": "Latest month: {month}",
+        "adultClearances": "Adult clearances",
+        "adultClearancesEmpty": "No active roster year compliance data.",
+        "adultClearancesCaption": "{rate}% of staff/director/counselor records cleared"
+      },
+      "snapshot": {
+        "title": "Readiness Snapshot",
+        "description": "Derived health indicators built from your live roster, compliance, event, report, and activity data.",
+        "healthAreas": "{count, plural, one {# health area} other {# health areas}}"
+      },
+      "upcomingEvents": {
+        "title": "Upcoming Events",
+        "openList": "Open Event List",
+        "empty": "No upcoming events are available at this time."
+      },
+      "compliance": {
+        "title": "Compliance Readiness",
+        "description": "Sterling clearance status for the active roster year. Conference admins still control sync preview/apply.",
+        "empty": "No active roster-year compliance snapshot is available yet.",
+        "adultRolesCleared": "Adult roles cleared",
+        "missingClearance": "{count} still missing Sterling clearance",
+        "latestAdminSync": "Latest admin sync",
+        "recentActivity": "Recent compliance sync activity",
+        "adultsBlocking": "Adults still blocking submissions",
+        "clear": "No adult roster members are currently missing Sterling clearance."
+      },
+      "alerts": {
+        "title": "Action Alerts",
+        "empty": "No blocking alerts detected.",
+        "noActiveRoster": "No active roster year found. Run annual rollover before event registration.",
+        "missingClearance": "{count} staff/director member(s) are missing Sterling clearance and can block submissions.",
+        "noUpcomingEvents": "No upcoming events are currently published by conference administration."
+      }
+    },
+    "events": {
+      "eyebrow": "Club Director",
+      "title": "Event Registration",
+      "description": "Open an event to select attendees, complete dynamic forms, and submit your club registration.",
+      "empty": "No upcoming events are currently available.",
+      "status": "Status: {status} - Attendees: {count}",
+      "openEvent": "Open Event"
+    },
+    "eventDetail": {
+      "eyebrow": "Event Registration",
+      "noDescription": "No additional description provided.",
+      "clubNotFoundDescription": "The selected club could not be loaded before registering for events.",
+      "when": "When",
+      "registrationWindow": "Registration Window",
+      "location": "Location",
+      "address": "Address",
+      "currentPrice": "Current Price / Attendee",
+      "estimatedTotal": "Estimated Total",
+      "camporeeEyebrow": "Camporee Summary",
+      "camporeeTitle": "Current Competition Scores",
+      "camporeeDescription": "These scores are attached to your existing event registration and do not replace the normal registration workflow.",
+      "totalScore": "Total Score",
+      "table": {
+        "category": "Category",
+        "score": "Score",
+        "notes": "Notes"
+      }
+    },
+    "registrationForm": {
+      "modules": "Registration Modules",
+      "modulesDescription": "Work through each section in order. Conditional sections will appear when earlier answers require them.",
+      "step": "Step {current} of {total}",
+      "module": "Module {index}",
+      "rosterTitle": "Roster Attendees",
+      "rosterDescription": "Select all roster members from your club who will attend this event.",
+      "clubTitle": "Club Registration",
+      "clubDescription": "Complete the club-wide questions that drive the rest of the registration.",
+      "rosterSectionDescription": "Select the club members attending this event.",
+      "groupDefaultDescription": "Finish this registration section before moving on.",
+      "selectAttendeeFirst": "Select at least one attendee to answer this question.",
+      "chooseRosterMember": "Choose one or more roster members.",
+      "selectRosterMember": "Select a roster member",
+      "selectOption": "Select an option",
+      "currentStatus": "Current status: {status}",
+      "previousSection": "Previous Section",
+      "nextSection": "Next Section",
+      "saveDraft": "Save Draft",
+      "submitRegistration": "Submit Registration",
+      "yes": "Yes",
+      "activePrompts": "{count, plural, one {# active prompt} other {# active prompts}}"
+    },
+    "roster": {
+      "eyebrow": "Roster Management",
+      "description": "Review this year's active roster, update member details, and run your annual rollover.",
+      "clubNotFoundDescription": "The selected club could not be loaded for roster management.",
+      "startRollover": "Start yearly rollover",
+      "rolloverDescription": "No active roster was found for {year}. Copy active members from {previousYear} into a new active roster year.",
+      "runRollover": "Run {year} Rollover",
+      "activeRosterYear": "Active Roster Year",
+      "activeMembers": "{count, plural, one {# Active Member} other {# Active Members}}",
+      "noRosterYears": "No roster years available",
+      "noRosterYearsDescription": "Create your first roster year for {year}, then start adding members.",
+      "createRosterYear": "Create {year} Roster Year"
+    },
+    "rosterTable": {
+      "title": "Roster Members",
+      "description": "Manage the active members for the current roster year.",
+      "addMember": "Add Member",
+      "missingConsentsTitle": "Missing one or more required consents",
+      "headers": {
+        "name": "Name",
+        "tags": "Tags",
+        "role": "Role",
+        "backgroundCheck": "Background Check",
+        "consents": "Consents",
+        "age": "Age",
+        "gender": "Gender",
+        "medical": "Medical",
+        "dietary": "Dietary",
+        "masterGuide": "Master Guide",
+        "actions": "Actions"
+      },
+      "empty": "No active members found in this roster year yet.",
+      "badges": {
+        "medical": "Medical",
+        "firstYear": "1st Year",
+        "notRequired": "Not Required",
+        "missingClearance": "Missing Clearance",
+        "dateLogged": "Date Logged {date}",
+        "cleared": "Cleared {date}",
+        "missing": "Missing",
+        "complete": "Complete",
+        "flagged": "Flagged",
+        "certified": "Certified"
+      },
+      "edit": "Edit",
+      "modal": {
+        "addTitle": "Add roster member",
+        "editTitle": "Edit roster member"
+      },
+      "form": {
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "role": "Role",
+        "age": "Age",
+        "gender": "Gender",
+        "preferNotToSay": "Prefer not to say",
+        "dateOfBirth": "Date of Birth",
+        "backgroundCheckDate": "Background Check Date",
+        "backgroundCheckHelp": "Required for staff, directors, and counselors.",
+        "medicalFlags": "Medical Flags",
+        "dietaryRestrictions": "Dietary Restrictions",
+        "emergencyContactName": "Emergency Contact Name",
+        "emergencyContactPhone": "Emergency Contact Phone",
+        "firstTimeMember": "First Time Member",
+        "medicalPersonnel": "Medical Personnel",
+        "masterGuide": "Master Guide",
+        "activeMember": "Active Member",
+        "agreementsTitle": "Agreements & Medical",
+        "agreementsDescription": "Capture parent/guardian consent confirmations and key health record details.",
+        "insuranceCompany": "Insurance Company",
+        "insurancePolicyNumber": "Insurance Policy Number",
+        "lastTetanusDate": "Last Tetanus Date",
+        "requiredConsents": "Required Consents",
+        "photoReleaseLabel": "Photo/Video Release:",
+        "photoReleaseText": "I authorize Pathfinder activities to capture and use photos/videos of my child for club communications and ministry promotion.",
+        "medicalConsentLabel": "Medical Treatment Consent:",
+        "medicalConsentText": "I authorize staff to secure emergency medical care when I cannot be reached, including transport and treatment as needed.",
+        "membershipAgreementLabel": "Membership Agreement:",
+        "membershipAgreementText": "I agree to Pathfinder participation standards, expectations, and parent/guardian responsibilities for this membership year.",
+        "cancel": "Cancel",
+        "createMember": "Create Member",
+        "saveChanges": "Save Changes"
+      }
+    },
+    "reports": {
+      "eyebrow": "Club Reporting",
+      "title": "{clubName} Reporting Engine",
+      "description": "Replace paper submissions by sending your monthly metrics directly to the Conference.",
+      "autoFillTitle": "Monthly Activity Auto-Fill",
+      "autoFillDescription": "Load a month to review club activities, then submit the monthly report with editable auto-filled values.",
+      "month": "Month",
+      "loadMonth": "Load month",
+      "activitiesLogged": "Activities logged",
+      "avgPathfinderAttendance": "Avg Pathfinder attendance",
+      "avgStaffAttendance": "Avg staff attendance",
+      "avgUniformCompliance": "Avg uniform compliance",
+      "usingRosterYear": "Using roster year {yearLabel} for {month}. Monthly report values will auto-fill from the logged activities below, but you can still edit them before submit.",
+      "noRosterYearForMonth": "No roster year covers this month yet. Add or activate the correct roster year before logging activity for this month.",
+      "existingReport": "An existing report already exists for this month, so the form is preloaded with the saved report values.",
+      "monthlyReportTitle": "Start Monthly Report",
+      "monthlyReportDescription": "Points are auto-calculated when you submit: {meetings} points per meeting, {pathfinder} per Pathfinder average attendance, {staff} per staff average attendance, plus uniform compliance bonus up to {uniformMax}.",
+      "reportMonth": "Report month",
+      "meetingCount": "Number of meetings",
+      "averagePathfinderAttendance": "Average Pathfinder attendance",
+      "averageStaffAttendance": "Average staff attendance",
+      "uniformCompliance": "Uniform compliance (%)",
+      "submitMonthlyReport": "Submit Monthly Report",
+      "activityTitle": "Log Club Activities",
+      "activityDescription": "Log activities for {month} so the monthly report can auto-fill from real attendance data.",
+      "activityDate": "Activity date",
+      "activityTitleLabel": "Activity title",
+      "activityTitlePlaceholder": "Club meeting, drill practice, outreach night...",
+      "pathfinderAttendance": "Pathfinder attendance",
+      "staffAttendance": "Staff attendance",
+      "notes": "Notes",
+      "saveActivity": "Save activity",
+      "noActivities": "No club activities have been logged for this month yet.",
+      "delete": "Delete",
+      "saveChanges": "Save changes",
+      "recentSubmissions": "Recent Monthly Submissions",
+      "noRecentReports": "No monthly reports have been submitted yet.",
+      "table": {
+        "month": "Month",
+        "meetings": "Meetings",
+        "uniform": "Uniform %",
+        "points": "Points",
+        "status": "Status"
+      }
+    },
+    "nominations": {
+      "eyebrow": "Awards & Nominations",
+      "title": "Submit Conference Nomination",
+      "description": "Nominate a Pathfinder from {clubName} for conference recognition.",
+      "formTitle": "Pathfinder of the Year Nomination Form",
+      "formDescription": "Share a clear, specific case for this Pathfinder's impact, service, and leadership.",
+      "empty": "No active roster members were found. Activate a roster year and add members before submitting a nomination.",
+      "rosterMember": "Roster Member",
+      "selectMember": "Select a member from {yearLabel}",
+      "awardType": "Award Type",
+      "nominationYear": "Nomination Year",
+      "justification": "Justification",
+      "justificationPlaceholder": "Why is this Pathfinder deserving of this award?",
+      "communityService": "Community Service Details",
+      "communityServicePlaceholder": "Describe meaningful service projects, consistency, and outcomes.",
+      "leadership": "Leadership",
+      "leadershipPlaceholder": "Describe leadership shown in club life, mentoring, and initiative.",
+      "submit": "Submit Nomination",
+      "awardTypes": {
+        "pathfinderOfTheYear": "Pathfinder of the Year"
+      }
+    },
+    "tlt": {
+      "eyebrow": "Teen Leadership Training",
+      "title": "{clubName} TLT Dashboard",
+      "description": "Track TLT applications, baptism status, honors progress, and uniform sizing.",
+      "clubNotFoundDescription": "The selected club could not be loaded for TLT applications.",
+      "noActiveRoster": "No active roster year found",
+      "noActiveRosterDescription": "Activate a roster year and assign TLT members before starting applications.",
+      "noMembers": "No TLT members in active roster",
+      "noMembersDescription": "Add members with the TLT role to the active roster to begin applications.",
+      "statusTitle": "TLT Application Status",
+      "activeRosterYear": "Active roster year: {yearLabel}",
+      "table": {
+        "member": "Member",
+        "grade": "Grade",
+        "baptized": "Baptized",
+        "status": "Status",
+        "action": "Action"
+      },
+      "editApplication": "Edit TLT Application",
+      "startApplication": "Start TLT Application"
+    },
+    "classes": {
+      "clubNotFoundDescription": "You need a valid club before assigning event classes.",
+      "eyebrow": "Class Assignment",
+      "description": "Assign each registered attendee to one event class. Capacity updates live as enrollments are made.",
+      "notEnabled": "This event is not configured for class assignment. Switch to the event registration flow or create a class-assignment event mode for future events.",
+      "board": {
+        "attendeesTitle": "Registered Attendees",
+        "attendeesDescription": "Choose an attendee for detail actions, or select multiple attendees for bulk assignment.",
+        "searchAttendees": "Search attendees",
+        "allAttendees": "All attendees",
+        "unassignedOnly": "Unassigned only",
+        "assignedOnly": "Assigned only",
+        "selectVisible": "Select visible",
+        "noClassAssigned": "No class assigned",
+        "oneClassAssigned": "1 class assigned",
+        "age": "Age {age}",
+        "na": "N/A",
+        "enrollmentTitle": "Class Enrollment & Live Capacity",
+        "assigningFor": "Assigning classes for {name}.",
+        "selectAttendee": "Select an attendee to start assigning classes.",
+        "searchOfferings": "Search honors/classes",
+        "allOfferings": "All offerings",
+        "openSeats": "Open seats",
+        "fullOfferings": "Full offerings",
+        "selectAnAttendee": "Select an attendee",
+        "alreadyEnrolled": "Already enrolled",
+        "alreadyAssignedOther": "Already assigned to another event class",
+        "classFull": "Class full",
+        "openCapacity": "Open capacity",
+        "seatsLeft": "{count}/{capacity} seats left",
+        "selectedAssignable": "{assignable} selected assignable - {removable} selected removable",
+        "remove": "Remove",
+        "enrolled": "Enrolled",
+        "enroll": "Enroll",
+        "bulkEnroll": "Bulk Enroll",
+        "bulkRemove": "Bulk Remove",
+        "locationTbd": "Location TBD",
+        "unableEnroll": "Unable to enroll attendee.",
+        "unableRemove": "Unable to remove enrollment.",
+        "unableBulkEnroll": "Unable to bulk enroll attendees.",
+        "unableBulkRemove": "Unable to bulk remove attendees."
+      }
+    }
   }
 }

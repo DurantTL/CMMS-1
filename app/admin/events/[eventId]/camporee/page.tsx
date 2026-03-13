@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getCamporeeDashboardData, saveCamporeeScore } from "../../../../actions/camporee-actions";
+import { AdminPageHeader } from "../../../_components/admin-page-header";
 
 type CamporeePageProps = {
   params: Promise<{
@@ -23,26 +24,27 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Camporee Scoring</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{dashboard.event.name}</h1>
-        <p className="mt-1 text-sm text-slate-600">{formatDateRange(dashboard.event.startsAt, dashboard.event.endsAt)}</p>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href={`/admin/events/${dashboard.event.id}`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Event Overview
-          </Link>
-          <Link
-            href={`/admin/events/${dashboard.event.id}/checkin`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Open Check-in
-          </Link>
-        </div>
-      </header>
+      <AdminPageHeader
+        eyebrow="Camporee Scoring"
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Events", href: "/admin/events" },
+          { label: dashboard.event.name, href: `/admin/events/${dashboard.event.id}` },
+          { label: "Camporee" },
+        ]}
+        title={dashboard.event.name}
+        description={formatDateRange(dashboard.event.startsAt, dashboard.event.endsAt)}
+        secondaryActions={
+          <>
+            <Link href={`/admin/events/${dashboard.event.id}`} className="btn-secondary">
+              Event Overview
+            </Link>
+            <Link href={`/admin/events/${dashboard.event.id}/checkin`} className="btn-secondary">
+              Open Check-in
+            </Link>
+          </>
+        }
+      />
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Record Club Scores</h2>

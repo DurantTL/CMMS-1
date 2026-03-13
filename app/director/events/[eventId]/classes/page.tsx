@@ -1,5 +1,6 @@
 import { type MemberRole, type Prisma, type RequirementType } from "@prisma/client";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { getManagedClubContext } from "../../../../../lib/club-management";
 import { CLASS_ASSIGNMENT_POLICY } from "../../../../../lib/class-model";
@@ -64,6 +65,7 @@ export default async function DirectorClassSelectionPage({
   params: Promise<{ eventId: string }>;
   searchParams?: Promise<{ clubId?: string }>;
 }) {
+  const t = await getTranslations("Director");
   const { eventId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
@@ -71,8 +73,8 @@ export default async function DirectorClassSelectionPage({
   if (!managedClub.clubId) {
     return (
       <section className="glass-panel">
-        <h1 className="text-xl font-semibold">Club not found</h1>
-        <p className="mt-2 text-sm">You need a valid club before assigning event classes.</p>
+        <h1 className="text-xl font-semibold">{t("common.clubNotFound")}</h1>
+        <p className="mt-2 text-sm">{t("classes.clubNotFoundDescription")}</p>
       </section>
     );
   }
@@ -86,6 +88,7 @@ export default async function DirectorClassSelectionPage({
       event: {
         select: {
           id: true,
+          eventMode: true,
           name: true,
           startsAt: true,
           endsAt: true,
@@ -173,15 +176,24 @@ export default async function DirectorClassSelectionPage({
 
   return (
     <section className="space-y-6">
+      {registration.event.eventMode !== "CLASS_ASSIGNMENT" ? (
+        <section className="glass-panel">
+          <h1 className="text-xl font-semibold text-slate-900">{t("classes.eyebrow")}</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            {t("classes.notEnabled")}
+          </p>
+        </section>
+      ) : null}
+      {registration.event.eventMode === "CLASS_ASSIGNMENT" ? (
       <header className="glass-panel">
-        <p className="hero-kicker">Class Assignment</p>
+        <p className="hero-kicker">{t("classes.eyebrow")}</p>
         <h1 className="hero-title mt-3">{registration.event.name}</h1>
-        <p className="hero-copy">
-          Assign each registered attendee to one event class. Capacity updates live as enrollments are made.
-        </p>
+        <p className="hero-copy">{t("classes.description")}</p>
         <p className="mt-1 text-xs font-medium text-slate-500">{CLASS_ASSIGNMENT_POLICY}</p>
       </header>
+      ) : null}
 
+      {registration.event.eventMode === "CLASS_ASSIGNMENT" ? (
       <ClassAssignmentBoard
         eventId={registration.event.id}
         managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
@@ -207,6 +219,7 @@ export default async function DirectorClassSelectionPage({
           requirements: mapRequirementsToEvaluatorInput(offering.classCatalog.requirements),
         }))}
       />
+      ) : null}
     </section>
   );
 }

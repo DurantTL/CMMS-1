@@ -7,6 +7,7 @@ import { getManagedClubContext } from "../../lib/club-management";
 import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
 import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-config";
 import { getFieldScope } from "../../lib/event-form-scope";
+import { getEventModeConfig } from "../../lib/event-modes";
 import { prisma } from "../../lib/prisma";
 import { assertRegistrationCanPersist } from "../../lib/registration-lifecycle";
 
@@ -214,6 +215,7 @@ async function getClubRegistrationContext(input: {
     select: {
       id: true,
       name: true,
+      eventMode: true,
       basePrice: true,
       lateFeePrice: true,
       lateFeeStartsAt: true,
@@ -294,6 +296,11 @@ export async function persistRegistrationForClub(input: {
 
   const attendeeIds = input.payload.attendeeIds.filter((attendeeId) => validAttendeeIds.has(attendeeId));
   const attendeeIdSet = new Set(attendeeIds);
+  const eventModeConfig = getEventModeConfig(event.eventMode);
+
+  if (!eventModeConfig.allowsRosterAttendees && attendeeIds.length > 0) {
+    throw new Error("This event does not accept roster attendees.");
+  }
 
   const fieldById = new Map(dynamicFieldRules.map((field) => [field.id, field]));
 
@@ -354,7 +361,7 @@ export async function persistRegistrationForClub(input: {
   const filteredResponses = responses.filter((response) => visibleFieldIds.has(response.eventFormFieldId));
 
   if (input.nextStatus === RegistrationStatus.SUBMITTED) {
-    if (attendeeIds.length === 0) {
+    if (eventModeConfig.allowsRosterAttendees && attendeeIds.length === 0) {
       throw new Error("Select at least one attendee before submitting registration.");
     }
 

@@ -2,6 +2,7 @@
 
 import {useMemo, useState} from 'react';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
+import {useTranslations} from 'next-intl';
 
 import {type AppLocale} from '../i18n';
 
@@ -16,6 +17,7 @@ const languageOptions: LanguageOption[] = [
 ];
 
 export function LanguageSwitcher({currentLocale}: {currentLocale: AppLocale}) {
+  const t = useTranslations('Common');
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -46,6 +48,7 @@ export function LanguageSwitcher({currentLocale}: {currentLocale: AppLocale}) {
         className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={t('language')}
       >
         {currentOption.label}
       </button>

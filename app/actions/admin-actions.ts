@@ -470,6 +470,7 @@ export async function getAdminEventsIndexData() {
       id: true,
       name: true,
       slug: true,
+      eventMode: true,
       startsAt: true,
       endsAt: true,
       registrationOpensAt: true,

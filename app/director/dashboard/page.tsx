@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MemberRole, RegistrationStatus } from "@prisma/client";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { getMonthWindow, parseMonthInput } from "../../../lib/club-activity";
 import { getManagedClubContext } from "../../../lib/club-management";
@@ -8,12 +9,12 @@ import { buildDirectorDashboardHealth } from "../../../lib/director-dashboard-he
 import { buildDirectorPath } from "../../../lib/director-path";
 import { prisma } from "../../../lib/prisma";
 
-function formatDateRange(startsAt: Date, endsAt: Date) {
-  return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
+function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
+  return `${startsAt.toLocaleDateString(locale)} - ${endsAt.toLocaleDateString(locale)}`;
 }
 
-function formatDateTime(value: Date | null) {
-  return value ? value.toLocaleString() : "—";
+function formatDateTime(value: Date | null, locale: string, noneLabel: string) {
+  return value ? value.toLocaleString(locale) : noneLabel;
 }
 
 export default async function ClubDirectorDashboardPage({
@@ -21,6 +22,8 @@ export default async function ClubDirectorDashboardPage({
 }: {
   searchParams?: Promise<{ clubId?: string }>;
 }) {
+  const td = await getTranslations("Director");
+  const locale = await getLocale();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
@@ -61,8 +64,8 @@ export default async function ClubDirectorDashboardPage({
   if (!club) {
     return (
       <section className="glass-panel">
-        <h1 className="text-xl font-semibold">Club not found</h1>
-        <p className="mt-2 text-sm">The selected club could not be loaded for dashboard workflows.</p>
+        <h1 className="text-xl font-semibold">{td("common.clubNotFound")}</h1>
+        <p className="mt-2 text-sm">{td("dashboard.clubNotFoundDescription")}</p>
       </section>
     );
   }
@@ -191,17 +194,17 @@ export default async function ClubDirectorDashboardPage({
   const alerts: string[] = [];
 
   if (!activeRoster) {
-    alerts.push("No active roster year found. Run annual rollover before event registration.");
+    alerts.push(td("dashboard.alerts.noActiveRoster"));
   }
 
   if (staffMissingClearance.length > 0) {
     alerts.push(
-      `${staffMissingClearance.length} staff/director member(s) are missing Sterling clearance and can block submissions.`,
+      td("dashboard.alerts.missingClearance", { count: staffMissingClearance.length }),
     );
   }
 
   if (upcomingEvents.length === 0) {
-    alerts.push("No upcoming events are currently published by conference administration.");
+    alerts.push(td("dashboard.alerts.noUpcomingEvents"));
   }
 
   const dashboardHealth = buildDirectorDashboardHealth({
@@ -227,10 +230,10 @@ export default async function ClubDirectorDashboardPage({
     <section className="space-y-8">
       <div className="glass-panel flex flex-wrap items-start justify-between gap-6">
         <div>
-          <p className="hero-kicker">Club Director Dashboard</p>
+          <p className="hero-kicker">{td("dashboard.eyebrow")}</p>
           <h2 className="hero-title mt-3">{club.name}</h2>
           <p className="hero-copy">
-            Manage roster readiness, event registrations, and class workflows from one place.
+            {td("dashboard.description")}
           </p>
         </div>
         <div className="flex gap-3">
@@ -238,66 +241,66 @@ export default async function ClubDirectorDashboardPage({
             href={buildDirectorPath("/director/roster", managedClub.clubId, managedClub.isSuperAdmin)}
             className="btn-secondary"
           >
-            View roster
+            {td("dashboard.viewRoster")}
           </Link>
           <Link
             href={buildDirectorPath("/director/events", managedClub.clubId, managedClub.isSuperAdmin)}
             className="btn-primary"
           >
-            Continue registration
+            {td("dashboard.continueRegistration")}
           </Link>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="metric-card">
-          <p className="metric-label">Active members</p>
+          <p className="metric-label">{td("dashboard.metrics.activeMembers")}</p>
           <p className="metric-value">{activeMembers.length}</p>
-          <p className="metric-caption">Current active roster year.</p>
+          <p className="metric-caption">{td("dashboard.metrics.activeMembersCaption")}</p>
         </article>
         <article className="metric-card">
-          <p className="metric-label">Upcoming events</p>
+          <p className="metric-label">{td("dashboard.metrics.upcomingEvents")}</p>
           <p className="metric-value">{upcomingEvents.length}</p>
-          <p className="metric-caption">Conference events open or upcoming.</p>
+          <p className="metric-caption">{td("dashboard.metrics.upcomingEventsCaption")}</p>
         </article>
         <article className="metric-card">
-          <p className="metric-label">Submitted registrations</p>
+          <p className="metric-label">{td("dashboard.metrics.submittedRegistrations")}</p>
           <p className="metric-value">{submittedRegistrations}</p>
-          <p className="metric-caption">Finalized by your club.</p>
+          <p className="metric-caption">{td("dashboard.metrics.submittedRegistrationsCaption")}</p>
         </article>
         <article className="metric-card">
-          <p className="metric-label">Draft registrations</p>
+          <p className="metric-label">{td("dashboard.metrics.draftRegistrations")}</p>
           <p className="metric-value">{draftRegistrations}</p>
-          <p className="metric-caption">In progress and editable.</p>
+          <p className="metric-caption">{td("dashboard.metrics.draftRegistrationsCaption")}</p>
         </article>
         <article className="metric-card">
-          <p className="metric-label">Activities this month</p>
+          <p className="metric-label">{td("dashboard.metrics.activitiesThisMonth")}</p>
           <p className="metric-value">{currentMonthActivityCount}</p>
-          <p className="metric-caption">Logged for monthly report auto-fill.</p>
+          <p className="metric-caption">{td("dashboard.metrics.activitiesThisMonthCaption")}</p>
         </article>
         <article className="metric-card">
-          <p className="metric-label">Latest monthly report</p>
+          <p className="metric-label">{td("dashboard.metrics.latestMonthlyReport")}</p>
           <p className="metric-value text-2xl">
-            {latestMonthlyReport ? latestMonthlyReport.status : "NONE"}
+            {latestMonthlyReport ? latestMonthlyReport.status : td("common.none")}
           </p>
           <p className="metric-caption">
             {latestMonthlyReport
-              ? `Latest month: ${latestMonthlyReport.reportMonth.toLocaleDateString(undefined, {
+              ? td("dashboard.metrics.latestMonth", { month: latestMonthlyReport.reportMonth.toLocaleDateString(locale, {
                   month: "short",
                   year: "numeric",
-                })}`
-              : "No monthly reports submitted yet."}
+                }) })
+              : td("dashboard.metrics.latestMonthlyReportEmpty")}
           </p>
         </article>
         <article className="metric-card">
-          <p className="metric-label">Adult clearances</p>
+          <p className="metric-label">{td("dashboard.metrics.adultClearances")}</p>
           <p className="metric-value">
             {complianceDashboard ? `${complianceDashboard.compliance.clearedAdultCount}/${complianceDashboard.compliance.adultCount}` : "0/0"}
           </p>
           <p className="metric-caption">
             {complianceDashboard
-              ? `${complianceDashboard.compliance.clearanceRate}% of staff/director/counselor records cleared`
-              : "No active roster year compliance data."}
+              ? td("dashboard.metrics.adultClearancesCaption", { rate: complianceDashboard.compliance.clearanceRate })
+              : td("dashboard.metrics.adultClearancesEmpty")}
           </p>
         </article>
       </div>
@@ -305,12 +308,12 @@ export default async function ClubDirectorDashboardPage({
       <article className="glass-panel">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 className="section-title">Readiness Snapshot</h3>
+            <h3 className="section-title">{td("dashboard.snapshot.title")}</h3>
             <p className="section-copy">
-              Derived health indicators built from your live roster, compliance, event, report, and activity data.
+              {td("dashboard.snapshot.description")}
             </p>
           </div>
-          <span className="status-chip-neutral">{dashboardHealth.cards.length} health areas</span>
+          <span className="status-chip-neutral">{td("dashboard.snapshot.healthAreas", { count: dashboardHealth.cards.length })}</span>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -330,17 +333,17 @@ export default async function ClubDirectorDashboardPage({
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <article className="glass-panel">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="section-title">Upcoming Events</h3>
+            <h3 className="section-title">{td("dashboard.upcomingEvents.title")}</h3>
             <Link
               href={buildDirectorPath("/director/events", managedClub.clubId, managedClub.isSuperAdmin)}
               className="btn-secondary px-3 py-1.5 text-xs"
             >
-              Open Event List
+              {td("dashboard.upcomingEvents.openList")}
             </Link>
           </div>
 
           {upcomingEvents.length === 0 ? (
-            <p className="empty-state text-sm text-slate-600">No upcoming events are available at this time.</p>
+            <p className="empty-state text-sm text-slate-600">{td("dashboard.upcomingEvents.empty")}</p>
           ) : (
             <ol className="space-y-3">
               {upcomingEvents.map((event) => {
@@ -353,14 +356,14 @@ export default async function ClubDirectorDashboardPage({
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{event.name}</p>
-                      <p className="text-xs text-slate-600">{formatDateRange(event.startsAt, event.endsAt)}</p>
+                      <p className="text-xs text-slate-600">{formatDateRange(event.startsAt, event.endsAt, locale)}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-semibold text-slate-700">
-                        {registration?.status ?? "NOT STARTED"}
+                        {registration?.status ?? td("common.notStarted")}
                       </p>
                       <p className="text-xs text-slate-500">
-                        {registration?._count.attendees ?? 0} attendee(s)
+                        {td("common.attendeesCount", { count: registration?._count.attendees ?? 0 })}
                       </p>
                     </div>
                   </li>
@@ -372,36 +375,38 @@ export default async function ClubDirectorDashboardPage({
 
         <article className="glass-panel">
           <div className="mb-4">
-            <h3 className="section-title">Compliance Readiness</h3>
+            <h3 className="section-title">{td("dashboard.compliance.title")}</h3>
             <p className="section-copy">
-              Sterling clearance status for the active roster year. Conference admins still control sync preview/apply.
+              {td("dashboard.compliance.description")}
             </p>
           </div>
 
           {!complianceDashboard ? (
-            <p className="empty-state text-sm text-slate-600">No active roster-year compliance snapshot is available yet.</p>
+            <p className="empty-state text-sm text-slate-600">{td("dashboard.compliance.empty")}</p>
           ) : (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="glass-card-soft">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Adult roles cleared</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">{td("dashboard.compliance.adultRolesCleared")}</p>
                   <p className="text-2xl font-semibold text-slate-900">
                     {complianceDashboard.compliance.clearedAdultCount} / {complianceDashboard.compliance.adultCount}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {complianceDashboard.compliance.unclearedAdultCount} still missing Sterling clearance
+                    {td("dashboard.compliance.missingClearance", { count: complianceDashboard.compliance.unclearedAdultCount })}
                   </p>
                 </div>
                 <div className="glass-card-soft">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Latest admin sync</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">{td("dashboard.compliance.latestAdminSync")}</p>
                   <p className="text-2xl font-semibold text-slate-900">{complianceDashboard.compliance.latestRunStatus}</p>
-                  <p className="text-xs text-slate-500">{formatDateTime(complianceDashboard.compliance.latestRunAt)}</p>
+                  <p className="text-xs text-slate-500">
+                    {formatDateTime(complianceDashboard.compliance.latestRunAt, locale, td("common.none"))}
+                  </p>
                 </div>
               </div>
 
               {complianceDashboard.recentRuns.length > 0 ? (
                 <div className="glass-card-soft">
-                  <p className="text-sm font-semibold text-slate-900">Recent compliance sync activity</p>
+                  <p className="text-sm font-semibold text-slate-900">{td("dashboard.compliance.recentActivity")}</p>
                   <ol className="mt-3 space-y-2 text-sm text-slate-700">
                     {complianceDashboard.recentRuns.map((run) => (
                       <li key={run.id} className="flex items-center justify-between gap-3">
@@ -419,7 +424,7 @@ export default async function ClubDirectorDashboardPage({
 
               {complianceDashboard.adultMembersMissingClearance.length > 0 ? (
                 <div className="glass-card-soft">
-                  <p className="text-sm font-semibold text-slate-900">Adults still blocking submissions</p>
+                  <p className="text-sm font-semibold text-slate-900">{td("dashboard.compliance.adultsBlocking")}</p>
                   <ul className="mt-2 space-y-1 text-sm text-slate-700">
                     {complianceDashboard.adultMembersMissingClearance.slice(0, 6).map((name) => (
                       <li key={name}>{name}</li>
@@ -427,16 +432,16 @@ export default async function ClubDirectorDashboardPage({
                   </ul>
                 </div>
               ) : (
-                <p className="alert-success">No adult roster members are currently missing Sterling clearance.</p>
+                <p className="alert-success">{td("dashboard.compliance.clear")}</p>
               )}
             </div>
           )}
         </article>
 
         <article className="glass-panel">
-          <h3 className="section-title">Action Alerts</h3>
+          <h3 className="section-title">{td("dashboard.alerts.title")}</h3>
           {alerts.length === 0 && dashboardHealth.alerts.length === 0 ? (
-            <p className="alert-success mt-4">No blocking alerts detected.</p>
+            <p className="alert-success mt-4">{td("dashboard.alerts.empty")}</p>
           ) : (
             <ul className="mt-4 space-y-3">
               {[...alerts, ...dashboardHealth.alerts].map((alert) => (

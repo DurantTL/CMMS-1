@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useFormState, useFormStatus } from "react-dom";
 
 import {
@@ -10,6 +11,7 @@ import {
   applySterlingBackgroundChecksPreview,
   previewSterlingBackgroundChecks,
 } from "../../../actions/compliance-actions";
+import { AdminPageHeader } from "../../_components/admin-page-header";
 
 type RosterYearDashboardRow = {
   id: string;
@@ -97,6 +99,7 @@ function complianceTone(status: RosterYearDashboardRow["compliance"]["status"]) 
 }
 
 export function ComplianceSyncDashboard({ dashboardData }: ComplianceSyncDashboardProps) {
+  const t = useTranslations("Admin");
   const [previewState, previewAction] = useFormState(
     previewSterlingBackgroundChecks,
     initialComplianceSyncState,
@@ -110,13 +113,16 @@ export function ComplianceSyncDashboard({ dashboardData }: ComplianceSyncDashboa
 
   return (
     <section className="space-y-8">
-      <header className="glass-panel">
-        <p className="hero-kicker">Super Admin Dashboard</p>
-        <h1 className="hero-title mt-3">Compliance Sync Engine</h1>
-        <p className="hero-copy">
-          Review roster-year readiness, recent sync activity, and Sterling preview/apply results without replacing the existing sync safeguards.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.compliance.eyebrow")}
+        breadcrumbs={[
+          { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+          { label: t("breadcrumbs.compliance"), href: "/admin/compliance" },
+          { label: t("breadcrumbs.compliance") },
+        ]}
+        title={t("pages.compliance.title")}
+        description={t("pages.compliance.description")}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Recent Sync Runs" value={dashboardData.overview.totalRuns} />

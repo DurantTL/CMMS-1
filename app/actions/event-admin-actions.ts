@@ -1,6 +1,6 @@
 "use server";
 
-import { FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
+import { EventMode, FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -21,6 +21,7 @@ import {
   type EventFieldConditionalOperator,
 } from "../../lib/event-form-config";
 import { buildEventTemplateSnapshot } from "../../lib/event-templates";
+import { parseEventMode, validateDynamicFieldsForEventMode } from "../../lib/event-modes";
 import { prisma } from "../../lib/prisma";
 
 type IncomingDynamicField = {
@@ -193,6 +194,39 @@ function validateEventTimeline(input: {
   if (input.lateFeeStartsAt < input.registrationOpensAt) {
     throw new Error("Late fee start date cannot be before registration opens.");
   }
+}
+
+async function resolveEventMode(formData: FormData) {
+  const templateId = optionalTrimmedString(formData.get("templateId"));
+
+  if (templateId) {
+    const template = await prisma.eventTemplate.findUnique({
+      where: {
+        id: templateId,
+      },
+      select: {
+        snapshot: true,
+      },
+    });
+
+    if (!template) {
+      throw new Error("Selected template was not found.");
+    }
+
+    const snapshot = template.snapshot as Record<string, unknown> | null;
+    return parseEventMode(typeof snapshot?.eventMode === "string" ? snapshot.eventMode : null);
+  }
+
+  const rawMode = formData.get("eventMode");
+  if (typeof rawMode !== "string" || rawMode.trim().length === 0) {
+    throw new Error("Event mode is required when starting a blank event.");
+  }
+
+  if (!Object.values(EventMode).includes(rawMode.trim() as EventMode)) {
+    throw new Error("Event mode is invalid.");
+  }
+
+  return rawMode.trim() as EventMode;
 }
 
 function parseDynamicFields(value: FormDataEntryValue | null) {
@@ -401,7 +435,7 @@ function isRedirectError(error: unknown) {
   );
 }
 
-function parseEventMutationInput(formData: FormData): EventMutationInput {
+async function parseEventMutationInput(formData: FormData): Promise<EventMutationInput> {
   const name = requireTrimmedString(formData.get("name"), "Event name");
   const startsAt = parseRequiredDate(formData.get("startsAt"), "Event start date");
   const endsAt = parseRequiredDate(formData.get("endsAt"), "Event end date");
@@ -420,6 +454,7 @@ function parseEventMutationInput(formData: FormData): EventMutationInput {
   const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
   const description = optionalTrimmedString(formData.get("description"));
   const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
+  const eventMode = await resolveEventMode(formData);
 
   validateEventTimeline({
     startsAt,
@@ -430,8 +465,10 @@ function parseEventMutationInput(formData: FormData): EventMutationInput {
   });
 
   prepareUniqueDynamicFieldKeys(dynamicFields);
+  validateDynamicFieldsForEventMode(eventMode, dynamicFields);
 
   return {
+    eventMode,
     name,
     description,
     startsAt,
@@ -453,7 +490,7 @@ export async function createEventWithDynamicFields(
 ): Promise<CreateEventActionState> {
   try {
     const createdByUserId = await requireSuperAdminUserId();
-    const input = parseEventMutationInput(formData);
+    const input = await parseEventMutationInput(formData);
     const slug = await buildUniqueSlug(input.name);
 
     await prisma.$transaction(async (tx) => {
@@ -485,7 +522,7 @@ export async function saveEventTemplate(
     const templateName = requireTrimmedString(formData.get("templateName"), "Template name");
     const templateDescription = optionalTrimmedString(formData.get("templateDescription"));
     const isActive = formData.get("templateIsActive") === "on";
-    const input = parseEventMutationInput(formData);
+    const input = await parseEventMutationInput(formData);
 
     const snapshot = buildEventTemplateSnapshot({
       ...input,
@@ -633,6 +670,7 @@ export async function updateEventDynamicFields(
       },
       select: {
         id: true,
+        eventMode: true,
         name: true,
         description: true,
         startsAt: true,
@@ -652,6 +690,8 @@ export async function updateEventDynamicFields(
     if (!existingEvent) {
       throw new Error("Event not found.");
     }
+
+    validateDynamicFieldsForEventMode(existingEvent.eventMode, dynamicFields);
 
     const responseCount = await prisma.eventFormResponse.count({
       where: {

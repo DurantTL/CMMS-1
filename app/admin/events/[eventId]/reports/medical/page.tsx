@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { getMedicalManifest, type MedicalManifestRow } from "../../../../../actions/medical-report-actions";
+import { AdminPageHeader } from "../../../../_components/admin-page-header";
 import { PrintManifestButton } from "./_components/print-manifest-button";
 
-function formatDateRange(startsAt: Date, endsAt: Date) {
-  return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
+function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
+  return `${startsAt.toLocaleDateString(locale)} - ${endsAt.toLocaleDateString(locale)}`;
 }
 
 type MedicalManifestPageProps = {
@@ -19,10 +21,26 @@ type ManifestTableProps = {
   emptyMessage: string;
   rows: MedicalManifestRow[];
   detailHeader: string;
+  attendeeHeader: string;
+  ageHeader: string;
+  roleHeader: string;
+  clubHeader: string;
+  emergencyHeader: string;
   getDetail: (row: MedicalManifestRow) => string;
 };
 
-function ManifestTable({ title, emptyMessage, rows, detailHeader, getDetail }: ManifestTableProps) {
+function ManifestTable({
+  title,
+  emptyMessage,
+  rows,
+  detailHeader,
+  attendeeHeader,
+  ageHeader,
+  roleHeader,
+  clubHeader,
+  emergencyHeader,
+  getDetail,
+}: ManifestTableProps) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none">
       <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
@@ -34,11 +52,11 @@ function ManifestTable({ title, emptyMessage, rows, detailHeader, getDetail }: M
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 print:bg-white">
               <tr>
-                <th className="px-4 py-3">Attendee Name</th>
-                <th className="px-4 py-3">Age</th>
-                <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">Club Name</th>
-                <th className="px-4 py-3">Emergency Contact Info</th>
+                <th className="px-4 py-3">{attendeeHeader}</th>
+                <th className="px-4 py-3">{ageHeader}</th>
+                <th className="px-4 py-3">{roleHeader}</th>
+                <th className="px-4 py-3">{clubHeader}</th>
+                <th className="px-4 py-3">{emergencyHeader}</th>
                 <th className="px-4 py-3">{detailHeader}</th>
               </tr>
             </thead>
@@ -62,6 +80,8 @@ function ManifestTable({ title, emptyMessage, rows, detailHeader, getDetail }: M
 }
 
 export default async function MedicalManifestPage({ params }: MedicalManifestPageProps) {
+  const t = await getTranslations("Admin");
+  const locale = await getLocale();
   const { eventId } = await params;
   const report = await getMedicalManifest(eventId);
 
@@ -97,51 +117,61 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
         }
       `}</style>
 
-      <header
-        data-hide-on-print="true"
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm print:hidden"
-      >
-        <p className="text-sm font-medium text-slate-500">Event Reports</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Medical & Dietary Master Manifest</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Master event-wide manifest for kitchen and medical staff, including emergency contact details.
-        </p>
-
-        <dl className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <div>
-            <dt className="font-semibold text-slate-900">Event</dt>
-            <dd>{report.event.name}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-slate-900">Event Dates</dt>
-            <dd>{formatDateRange(report.event.startsAt, report.event.endsAt)}</dd>
-          </div>
-        </dl>
-
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <PrintManifestButton />
-          <Link
-            href={`/admin/events/${eventId}`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Event
-          </Link>
-        </div>
-      </header>
+      <div data-hide-on-print="true" className="print:hidden">
+        <AdminPageHeader
+          eyebrow={t("breadcrumbs.medicalManifest")}
+          breadcrumbs={[
+            { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+            { label: t("breadcrumbs.events"), href: "/admin/events" },
+            { label: report.event.name, href: `/admin/events/${eventId}` },
+            { label: t("breadcrumbs.medicalManifest") },
+          ]}
+          title={t("breadcrumbs.medicalManifest")}
+          description="Master event-wide manifest for kitchen and medical staff, including emergency contact details."
+          primaryAction={<PrintManifestButton />}
+          secondaryActions={
+            <Link href={`/admin/events/${eventId}`} className="btn-secondary">
+              {t("actions.backToEvent")}
+            </Link>
+          }
+          details={
+            <>
+              <div>
+                <dt className="font-semibold text-slate-900">{t("pages.events.columns.event")}</dt>
+                <dd>{report.event.name}</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-slate-900">{t("pages.events.columns.dates")}</dt>
+                <dd>{formatDateRange(report.event.startsAt, report.event.endsAt, locale)}</dd>
+              </div>
+            </>
+          }
+        />
+      </div>
 
       <ManifestTable
-        title="Dietary Restrictions Manifest"
-        emptyMessage="No dietary restrictions were reported for submitted or approved registrations."
+        title={t("pages.medical.dietaryTitle")}
+        emptyMessage={t("pages.medical.dietaryEmpty")}
         rows={report.dietaryRows}
-        detailHeader="Dietary Restriction"
+        detailHeader={t("pages.medical.dietaryDetail")}
+        attendeeHeader={t("pages.medical.table.attendee")}
+        ageHeader={t("pages.medical.table.age")}
+        roleHeader={t("pages.medical.table.role")}
+        clubHeader={t("pages.medical.table.club")}
+        emergencyHeader={t("pages.medical.table.emergency")}
         getDetail={(row) => row.dietaryRestrictions ?? ""}
       />
 
       <ManifestTable
-        title="Medical Flags Manifest"
-        emptyMessage="No medical flags were reported for submitted or approved registrations."
+        title={t("pages.medical.medicalTitle")}
+        emptyMessage={t("pages.medical.medicalEmpty")}
         rows={report.medicalRows}
-        detailHeader="Medical Flag"
+        detailHeader={t("pages.medical.medicalDetail")}
+        attendeeHeader={t("pages.medical.table.attendee")}
+        ageHeader={t("pages.medical.table.age")}
+        roleHeader={t("pages.medical.table.role")}
+        clubHeader={t("pages.medical.table.club")}
+        emergencyHeader={t("pages.medical.table.emergency")}
         getDetail={(row) => row.medicalFlags ?? ""}
       />
     </section>

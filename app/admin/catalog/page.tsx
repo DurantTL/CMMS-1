@@ -1,4 +1,5 @@
 import { ClassType, MemberRole, RequirementType } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 import {
   createMasterCatalogItem,
@@ -6,6 +7,7 @@ import {
   importMasterCatalogCsv,
   updateMasterCatalogItem,
 } from "../../actions/admin-actions";
+import { AdminPageHeader } from "../_components/admin-page-header";
 
 function renderRequirementSummary(requirement: {
   requirementType: RequirementType;
@@ -48,6 +50,7 @@ type AdminCatalogPageProps = {
 };
 
 export default async function AdminCatalogPage({ searchParams }: AdminCatalogPageProps) {
+  const t = await getTranslations("Admin");
   const catalog = await getMasterCatalogData();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const importStatus = resolvedSearchParams?.importStatus;
@@ -55,13 +58,16 @@ export default async function AdminCatalogPage({ searchParams }: AdminCatalogPag
 
   return (
     <section className="space-y-6">
-      <header className="glass-panel">
-        <p className="hero-kicker">Super Admin</p>
-        <h1 className="hero-title mt-3">Master Class/Honor Catalog</h1>
-        <p className="hero-copy">
-          Manage conference-wide honors, workshops, and prerequisite requirements.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.catalog.eyebrow")}
+        breadcrumbs={[
+          { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+          { label: t("breadcrumbs.events"), href: "/admin/events" },
+          { label: t("breadcrumbs.catalog") },
+        ]}
+        title={t("pages.catalog.title")}
+        description={t("pages.catalog.description")}
+      />
 
       {importMessage ? (
         <article className={importStatus === "error" ? "glass-panel border-rose-200 text-rose-700" : "glass-panel border-emerald-200 text-emerald-700"}>

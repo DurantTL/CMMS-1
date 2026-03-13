@@ -6,6 +6,8 @@ import {
   getAdminEventRegistrations,
   getMasterEventAttendeesCsv,
 } from "../../../actions/admin-actions";
+import { getEventModeConfig } from "../../../../lib/event-modes";
+import { AdminPageHeader } from "../../_components/admin-page-header";
 
 function formatDateRange(startsAt: Date, endsAt: Date) {
   return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
@@ -28,81 +30,75 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
   const csvData = await getMasterEventAttendeesCsv(eventId);
   const camporeeDashboard = await getCamporeeDashboardData(eventId).catch(() => null);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csvData.content)}`;
+  const eventModeConfig = getEventModeConfig(event.eventMode);
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Event Overseer</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{event.name}</h1>
-        <p className="mt-1 text-sm text-slate-600">{event.description ?? "No description provided."}</p>
-
-        <dl className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <div>
-            <dt className="font-semibold text-slate-900">Dates</dt>
-            <dd>{formatDateRange(event.startsAt, event.endsAt)}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-slate-900">Registration Window</dt>
-            <dd>{formatDateRange(event.registrationOpensAt, event.registrationClosesAt)}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-slate-900">Location</dt>
-            <dd>{event.locationName ?? "TBD"}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-slate-900">Address</dt>
-            <dd>{event.locationAddress ?? "TBD"}</dd>
-          </div>
-        </dl>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href={`/admin/events/${eventId}/edit`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
+      <AdminPageHeader
+        eyebrow="Event Overseer"
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Events", href: "/admin/events" },
+          { label: event.name },
+        ]}
+        title={event.name}
+        description={event.description ?? "No description provided."}
+        primaryAction={
+          <Link href={`/admin/events/${eventId}/edit`} className="btn-primary">
             Edit Event Details
           </Link>
-          <Link
-            href={`/admin/events/${eventId}/classes`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Manage Class Offerings
-          </Link>
-          <a
-            href={csvHref}
-            download={csvData.fileName}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-          >
-            Download Master Attendees CSV
-          </a>
-          <Link
-            href={`/admin/events/${eventId}/reports/operational`}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-          >
-            Open Operational Reports
-          </Link>
-          <Link
-            href={`/admin/events/${eventId}/reports/compliance`}
-            className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500"
-          >
-            Open Compliance Dashboard
-          </Link>
-          <Link
-            href={`/admin/events/${eventId}/camporee`}
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500"
-          >
-            Open Camporee Scoring
-          </Link>
-          <Link
-            href="/admin/dashboard"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
-      </header>
+        }
+        secondaryActions={
+          <>
+            {event.eventMode === "CLASS_ASSIGNMENT" ? (
+              <Link href={`/admin/events/${eventId}/classes`} className="btn-secondary">
+                Manage Class Offerings
+              </Link>
+            ) : null}
+            <a href={csvHref} download={csvData.fileName} className="btn-secondary">
+              Download Master Attendees CSV
+            </a>
+            <Link href={`/admin/events/${eventId}/reports/operational`} className="btn-secondary">
+              Operational Reports
+            </Link>
+            <Link href={`/admin/events/${eventId}/reports/compliance`} className="btn-secondary">
+              Compliance Dashboard
+            </Link>
+            <Link href={`/admin/events/${eventId}/camporee`} className="btn-secondary">
+              Camporee Scoring
+            </Link>
+          </>
+        }
+        details={
+          <>
+            <div>
+              <dt className="font-semibold text-slate-900">Mode</dt>
+              <dd>{eventModeConfig.label}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-slate-900">Dates</dt>
+              <dd>{formatDateRange(event.startsAt, event.endsAt)}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-slate-900">Registration Window</dt>
+              <dd>{formatDateRange(event.registrationOpensAt, event.registrationClosesAt)}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-slate-900">Location</dt>
+              <dd>{event.locationName ?? "TBD"}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-slate-900">Address</dt>
+              <dd>{event.locationAddress ?? "TBD"}</dd>
+            </div>
+          </>
+        }
+      />
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          {eventModeConfig.description}
+        </p>
         <h2 className="text-xl font-semibold text-slate-900">Club Registrations</h2>
         <p className="mt-1 text-sm text-slate-600">
           Conference-wide registration list and attendee totals across all clubs.

@@ -2,12 +2,15 @@ import { auth } from "../../../auth";
 import { purgeInactiveInsuranceCards } from "../../actions/storage-actions";
 import { bytesToMegabytes, getPrivateUploadsUsageBytes } from "../../../lib/local-storage";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { AdminPageHeader } from "../_components/admin-page-header";
 
 function formatMegabytes(value: number) {
   return value.toFixed(2);
 }
 
 export default async function AdminStoragePage() {
+  const t = await getTranslations("Admin");
   const session = await auth();
 
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
@@ -19,12 +22,16 @@ export default async function AdminStoragePage() {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Secure Local Storage</h1>
-        <p className="text-sm text-gray-600">
-          Monitor and purge Insurance Card files that are stored in private server storage.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow={t("pages.storage.eyebrow")}
+        breadcrumbs={[
+          { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+          { label: t("breadcrumbs.compliance"), href: "/admin/compliance" },
+          { label: t("breadcrumbs.storage") },
+        ]}
+        title={t("pages.storage.title")}
+        description={t("pages.storage.description")}
+      />
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
         <p className="text-sm uppercase tracking-wide text-blue-800">Current Usage</p>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import {
   getOperationalAvCsv,
@@ -13,9 +14,10 @@ import {
   ExportCsvButton,
   SpiritualReportTable,
 } from "./_components/report-tables";
+import { AdminPageHeader } from "../../../../_components/admin-page-header";
 
-function formatDateRange(startsAt: Date, endsAt: Date) {
-  return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
+function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
+  return `${startsAt.toLocaleDateString(locale)} - ${endsAt.toLocaleDateString(locale)}`;
 }
 
 type OperationalReportsPageProps = {
@@ -25,6 +27,8 @@ type OperationalReportsPageProps = {
 };
 
 export default async function OperationalReportsPage({ params }: OperationalReportsPageProps) {
+  const t = await getTranslations("Admin");
+  const locale = await getLocale();
   const { eventId } = await params;
 
   const report = await getOperationalReports(eventId);
@@ -45,43 +49,44 @@ export default async function OperationalReportsPage({ params }: OperationalRepo
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Conference Reports</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Operational Reports</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Dedicated logistics dashboards for spiritual decisions, duties/activities, and AV equipment requests.
-        </p>
-
-        <dl className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
-          <div>
-            <dt className="font-semibold text-slate-900">Event</dt>
-            <dd>{report.event.name}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-slate-900">Event Dates</dt>
-            <dd>{formatDateRange(report.event.startsAt, report.event.endsAt)}</dd>
-          </div>
-        </dl>
-
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Link
-            href={`/admin/events/${eventId}`}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Event
+      <AdminPageHeader
+        eyebrow={t("breadcrumbs.operationalReports")}
+        breadcrumbs={[
+          { label: t("breadcrumbs.admin"), href: "/admin/dashboard" },
+          { label: t("breadcrumbs.events"), href: "/admin/events" },
+          { label: report.event.name, href: `/admin/events/${eventId}` },
+          { label: t("breadcrumbs.operationalReports") },
+        ]}
+        title={t("breadcrumbs.operationalReports")}
+        description={t("pages.operationalReports.spiritualDescription")}
+        secondaryActions={
+          <Link href={`/admin/events/${eventId}`} className="btn-secondary">
+            {t("actions.backToEvent")}
           </Link>
-        </div>
-      </header>
+        }
+        details={
+          <>
+            <div>
+              <dt className="font-semibold text-slate-900">{t("pages.events.columns.event")}</dt>
+              <dd>{report.event.name}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-slate-900">{t("pages.events.columns.dates")}</dt>
+              <dd>{formatDateRange(report.event.startsAt, report.event.endsAt, locale)}</dd>
+            </div>
+          </>
+        }
+      />
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Baptism / Spiritual List</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{t("pages.operationalReports.spiritualTitle")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Entries pulled from <span className="font-mono">baptism_names</span> and <span className="font-mono">bible_names</span> across all submitted or approved registrations.
+              {t("pages.operationalReports.spiritualDescription")}
             </p>
           </div>
-          <ExportCsvButton href={spiritualCsvHref} fileName={spiritualCsv.fileName} label="Export to CSV" />
+          <ExportCsvButton href={spiritualCsvHref} fileName={spiritualCsv.fileName} label={t("actions.exportCsv")} />
         </div>
 
         <SpiritualReportTable rows={report.spiritualRows} />
@@ -90,12 +95,12 @@ export default async function OperationalReportsPage({ params }: OperationalRepo
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Duty / Activity Roster</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{t("pages.operationalReports.dutyTitle")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Clubs grouped by selections in <span className="font-mono">duty_first</span>, <span className="font-mono">duty_second</span>, and <span className="font-mono">special_activity</span>.
+              {t("pages.operationalReports.dutyDescription")}
             </p>
           </div>
-          <ExportCsvButton href={dutyCsvHref} fileName={dutyCsv.fileName} label="Export to CSV" />
+          <ExportCsvButton href={dutyCsvHref} fileName={dutyCsv.fileName} label={t("actions.exportCsv")} />
         </div>
 
         <DutyReportTable rows={report.dutyRows} />
@@ -104,12 +109,12 @@ export default async function OperationalReportsPage({ params }: OperationalRepo
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">AV &amp; Equipment Requests</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{t("pages.operationalReports.avTitle")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Clubs with AV-related responses and exact equipment details.
+              {t("pages.operationalReports.avDescription")}
             </p>
           </div>
-          <ExportCsvButton href={avCsvHref} fileName={avCsv.fileName} label="Export to CSV" />
+          <ExportCsvButton href={avCsvHref} fileName={avCsv.fileName} label={t("actions.exportCsv")} />
         </div>
 
         <AvReportTable rows={report.avRows} />

@@ -4,18 +4,19 @@ import {
   getDirectorReportsDashboardData,
   saveClubActivity,
 } from "../../actions/club-report-actions";
+import { getLocale, getTranslations } from "next-intl/server";
 import { formatDateInputValue } from "../../../lib/club-activity";
 import { getManagedClubContext } from "../../../lib/club-management";
 
-function formatMonthLabel(reportMonth: Date) {
-  return reportMonth.toLocaleDateString(undefined, {
+function formatMonthLabel(reportMonth: Date, locale: string) {
+  return reportMonth.toLocaleDateString(locale, {
     month: "long",
     year: "numeric",
   });
 }
 
-function formatActivityDateLabel(activityDate: Date) {
-  return activityDate.toLocaleDateString(undefined, {
+function formatActivityDateLabel(activityDate: Date, locale: string) {
+  return activityDate.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -27,6 +28,8 @@ export default async function DirectorReportsPage({
 }: {
   searchParams?: Promise<{ clubId?: string; month?: string }>;
 }) {
+  const t = await getTranslations("Director");
+  const locale = await getLocale();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
   const dashboardData = await getDirectorReportsDashboardData(managedClub.clubId, resolvedSearchParams?.month ?? null);
@@ -34,28 +37,28 @@ export default async function DirectorReportsPage({
   return (
     <section className="space-y-8">
       <header>
-        <p className="text-sm font-medium text-slate-500">Club Reporting</p>
+        <p className="text-sm font-medium text-slate-500">{t("reports.eyebrow")}</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-          {dashboardData.clubName} Reporting Engine
+          {t("reports.title", { clubName: dashboardData.clubName })}
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Replace paper submissions by sending your monthly metrics directly to the Conference.
+          {t("reports.description")}
         </p>
       </header>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Monthly Activity Auto-Fill</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{t("reports.autoFillTitle")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Load a month to review club activities, then submit the monthly report with editable auto-filled values.
+              {t("reports.autoFillDescription")}
             </p>
           </div>
 
           <form className="flex flex-wrap items-end gap-3">
             {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
             <label className="space-y-1 text-sm font-medium text-slate-700">
-              <span>Month</span>
+              <span>{t("reports.month")}</span>
               <input
                 type="month"
                 name="month"
@@ -67,30 +70,30 @@ export default async function DirectorReportsPage({
               type="submit"
               className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900"
             >
-              Load month
+              {t("reports.loadMonth")}
             </button>
           </form>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Activities logged</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("reports.activitiesLogged")}</p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">{dashboardData.selectedMonthAutoFill.activityCount}</p>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Avg Pathfinder attendance</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("reports.avgPathfinderAttendance")}</p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">
               {dashboardData.selectedMonthAutoFill.averagePathfinderAttendance}
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Avg staff attendance</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("reports.avgStaffAttendance")}</p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">
               {dashboardData.selectedMonthAutoFill.averageStaffAttendance}
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Avg uniform compliance</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("reports.avgUniformCompliance")}</p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">
               {dashboardData.selectedMonthAutoFill.uniformCompliance}%
             </p>
@@ -100,33 +103,37 @@ export default async function DirectorReportsPage({
         <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
           {dashboardData.selectedRosterYear ? (
             <>
-              Using roster year <span className="font-semibold text-slate-900">{dashboardData.selectedRosterYear.yearLabel}</span>{" "}
-              for {formatMonthLabel(dashboardData.selectedMonth)}. Monthly report values will auto-fill from the logged activities below, but you can still edit them before submit.
+              {t("reports.usingRosterYear", {
+                yearLabel: dashboardData.selectedRosterYear.yearLabel,
+                month: formatMonthLabel(dashboardData.selectedMonth, locale),
+              })}
             </>
           ) : (
-            <>No roster year covers this month yet. Add or activate the correct roster year before logging activity for this month.</>
+            <>{t("reports.noRosterYearForMonth")}</>
           )}
           {dashboardData.selectedMonthExistingReport ? (
             <span className="ml-1">
-              An existing report already exists for this month, so the form is preloaded with the saved report values.
+              {t("reports.existingReport")}
             </span>
           ) : null}
         </div>
       </article>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Start Monthly Report</h2>
+        <h2 className="text-xl font-semibold text-slate-900">{t("reports.monthlyReportTitle")}</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Points are auto-calculated when you submit: {dashboardData.rubric.pointsPerMeeting} points per
-          meeting, {dashboardData.rubric.pointsPerPathfinderAttendance} per Pathfinder average attendance,
-          {dashboardData.rubric.pointsPerStaffAttendance} per staff average attendance, plus uniform
-          compliance bonus up to {dashboardData.rubric.maxUniformPoints}.
+          {t("reports.monthlyReportDescription", {
+            meetings: dashboardData.rubric.pointsPerMeeting,
+            pathfinder: dashboardData.rubric.pointsPerPathfinderAttendance,
+            staff: dashboardData.rubric.pointsPerStaffAttendance,
+            uniformMax: dashboardData.rubric.maxUniformPoints,
+          })}
         </p>
 
         <form action={createMonthlyReport} className="mt-6 grid gap-4 md:grid-cols-2">
           {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Report month</span>
+            <span>{t("reports.reportMonth")}</span>
             <input
               type="month"
               name="reportMonth"
@@ -137,7 +144,7 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Number of meetings</span>
+            <span>{t("reports.meetingCount")}</span>
             <input
               type="number"
               name="meetingCount"
@@ -149,7 +156,7 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Average Pathfinder attendance</span>
+            <span>{t("reports.averagePathfinderAttendance")}</span>
             <input
               type="number"
               name="averagePathfinderAttendance"
@@ -161,7 +168,7 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Average staff attendance</span>
+            <span>{t("reports.averageStaffAttendance")}</span>
             <input
               type="number"
               name="averageStaffAttendance"
@@ -173,7 +180,7 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-            <span>Uniform compliance (%)</span>
+            <span>{t("reports.uniformCompliance")}</span>
             <input
               type="number"
               name="uniformCompliance"
@@ -190,7 +197,7 @@ export default async function DirectorReportsPage({
               type="submit"
               className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
-              Submit Monthly Report
+              {t("reports.submitMonthlyReport")}
             </button>
           </div>
         </form>
@@ -199,20 +206,20 @@ export default async function DirectorReportsPage({
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Log Club Activities</h2>
+            <h2 className="text-xl font-semibold text-slate-900">{t("reports.activityTitle")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Log activities for {formatMonthLabel(dashboardData.selectedMonth)} so the monthly report can auto-fill from real attendance data.
+              {t("reports.activityDescription", { month: formatMonthLabel(dashboardData.selectedMonth, locale) })}
             </p>
           </div>
           <p className="text-sm text-slate-500">
-            {dashboardData.selectedMonthActivities.length} activit{dashboardData.selectedMonthActivities.length === 1 ? "y" : "ies"} in this month
+            {t("common.activitiesInMonth", { count: dashboardData.selectedMonthActivities.length })}
           </p>
         </div>
 
         <form action={saveClubActivity} className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2">
           {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Activity date</span>
+            <span>{t("reports.activityDate")}</span>
             <input
               type="date"
               name="activityDate"
@@ -223,18 +230,18 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Activity title</span>
+            <span>{t("reports.activityTitleLabel")}</span>
             <input
               type="text"
               name="title"
               required
-              placeholder="Club meeting, drill practice, outreach night..."
+              placeholder={t("reports.activityTitlePlaceholder")}
               className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none"
             />
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Pathfinder attendance</span>
+            <span>{t("reports.pathfinderAttendance")}</span>
             <input
               type="number"
               name="pathfinderAttendance"
@@ -245,7 +252,7 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Staff attendance</span>
+            <span>{t("reports.staffAttendance")}</span>
             <input
               type="number"
               name="staffAttendance"
@@ -256,7 +263,7 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700">
-            <span>Uniform compliance (%)</span>
+            <span>{t("reports.uniformCompliance")}</span>
             <input
               type="number"
               name="uniformCompliance"
@@ -268,7 +275,7 @@ export default async function DirectorReportsPage({
           </label>
 
           <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-            <span>Notes</span>
+            <span>{t("reports.notes")}</span>
             <textarea
               name="notes"
               rows={3}
@@ -281,14 +288,14 @@ export default async function DirectorReportsPage({
               type="submit"
               className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
-              Save activity
+              {t("reports.saveActivity")}
             </button>
           </div>
         </form>
 
         {dashboardData.selectedMonthActivities.length === 0 ? (
           <p className="mt-6 text-sm text-slate-600">
-            No club activities have been logged for this month yet.
+            {t("reports.noActivities")}
           </p>
         ) : (
           <div className="mt-6 space-y-4">
@@ -297,7 +304,7 @@ export default async function DirectorReportsPage({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{activity.title}</p>
-                    <p className="text-xs text-slate-500">{formatActivityDateLabel(activity.activityDate)}</p>
+                    <p className="text-xs text-slate-500">{formatActivityDateLabel(activity.activityDate, locale)}</p>
                   </div>
                   <form action={deleteClubActivity}>
                     {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
@@ -306,7 +313,7 @@ export default async function DirectorReportsPage({
                       type="submit"
                       className="rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-50"
                     >
-                      Delete
+                      {t("reports.delete")}
                     </button>
                   </form>
                 </div>
@@ -315,7 +322,7 @@ export default async function DirectorReportsPage({
                   {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
                   <input type="hidden" name="activityId" value={activity.id} />
                   <label className="space-y-1 text-sm font-medium text-slate-700">
-                    <span>Activity date</span>
+                    <span>{t("reports.activityDate")}</span>
                     <input
                       type="date"
                       name="activityDate"
@@ -325,7 +332,7 @@ export default async function DirectorReportsPage({
                     />
                   </label>
                   <label className="space-y-1 text-sm font-medium text-slate-700">
-                    <span>Activity title</span>
+                    <span>{t("reports.activityTitleLabel")}</span>
                     <input
                       type="text"
                       name="title"
@@ -335,7 +342,7 @@ export default async function DirectorReportsPage({
                     />
                   </label>
                   <label className="space-y-1 text-sm font-medium text-slate-700">
-                    <span>Pathfinder attendance</span>
+                    <span>{t("reports.pathfinderAttendance")}</span>
                     <input
                       type="number"
                       name="pathfinderAttendance"
@@ -346,7 +353,7 @@ export default async function DirectorReportsPage({
                     />
                   </label>
                   <label className="space-y-1 text-sm font-medium text-slate-700">
-                    <span>Staff attendance</span>
+                    <span>{t("reports.staffAttendance")}</span>
                     <input
                       type="number"
                       name="staffAttendance"
@@ -357,7 +364,7 @@ export default async function DirectorReportsPage({
                     />
                   </label>
                   <label className="space-y-1 text-sm font-medium text-slate-700">
-                    <span>Uniform compliance (%)</span>
+                    <span>{t("reports.uniformCompliance")}</span>
                     <input
                       type="number"
                       name="uniformCompliance"
@@ -369,7 +376,7 @@ export default async function DirectorReportsPage({
                     />
                   </label>
                   <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
-                    <span>Notes</span>
+                    <span>{t("reports.notes")}</span>
                     <textarea
                       name="notes"
                       rows={3}
@@ -382,7 +389,7 @@ export default async function DirectorReportsPage({
                       type="submit"
                       className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900"
                     >
-                      Save changes
+                      {t("reports.saveChanges")}
                     </button>
                   </div>
                 </form>
@@ -393,25 +400,25 @@ export default async function DirectorReportsPage({
       </article>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Recent Monthly Submissions</h2>
+        <h2 className="text-xl font-semibold text-slate-900">{t("reports.recentSubmissions")}</h2>
         {dashboardData.recentReports.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">No monthly reports have been submitted yet.</p>
+          <p className="mt-3 text-sm text-slate-600">{t("reports.noRecentReports")}</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Month</th>
-                  <th className="px-4 py-3">Meetings</th>
-                  <th className="px-4 py-3">Uniform %</th>
-                  <th className="px-4 py-3">Points</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">{t("reports.table.month")}</th>
+                  <th className="px-4 py-3">{t("reports.table.meetings")}</th>
+                  <th className="px-4 py-3">{t("reports.table.uniform")}</th>
+                  <th className="px-4 py-3">{t("reports.table.points")}</th>
+                  <th className="px-4 py-3">{t("reports.table.status")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {dashboardData.recentReports.map((report) => (
                   <tr key={report.id}>
-                    <td className="px-4 py-3 font-medium text-slate-900">{formatMonthLabel(report.reportMonth)}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{formatMonthLabel(report.reportMonth, locale)}</td>
                     <td className="px-4 py-3 text-slate-700">{report.meetingCount}</td>
                     <td className="px-4 py-3 text-slate-700">{report.uniformCompliance}%</td>
                     <td className="px-4 py-3 text-slate-700">{report.pointsCalculated}</td>

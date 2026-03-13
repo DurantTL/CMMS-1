@@ -9,7 +9,9 @@ import {
   updateEventClassOfferingAction,
 } from "../../../../actions/admin-actions";
 import { CLASS_ASSIGNMENT_POLICY } from "../../../../../lib/class-model";
+import { getEventModeConfig } from "../../../../../lib/event-modes";
 import { prisma } from "../../../../../lib/prisma";
+import { AdminPageHeader } from "../../../_components/admin-page-header";
 
 type AdminEventClassesPageProps = {
   params: Promise<{
@@ -38,6 +40,7 @@ export default async function AdminEventClassesPage({
       select: {
         id: true,
         name: true,
+        eventMode: true,
         classOfferings: {
           include: {
             enrollments: {
@@ -107,32 +110,49 @@ export default async function AdminEventClassesPage({
 
   const assignedCatalogIds = new Set(event.classOfferings.map((offering) => offering.classCatalog.id));
   const availableCatalogItems = catalogItems.filter((item) => !assignedCatalogIds.has(item.id));
+  const eventModeConfig = getEventModeConfig(event.eventMode);
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Event Management</p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-900">Class Offerings</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Configure class offerings, assign teachers, and set capacity for{" "}
-          <span className="font-semibold text-slate-900">{event.name}</span>.
+      <AdminPageHeader
+        eyebrow="Event Management"
+        breadcrumbs={[
+          { label: "Admin", href: "/admin/dashboard" },
+          { label: "Events", href: "/admin/events" },
+          { label: event.name, href: `/admin/events/${event.id}` },
+          { label: "Classes" },
+        ]}
+        title="Class Offerings"
+        description={`Configure class offerings, assign teachers, and set capacity for ${event.name}.`}
+        secondaryActions={
+          <>
+            <Link href={`/admin/events/${event.id}`} className="btn-secondary">
+              Back to Overseer
+            </Link>
+            <Link href="/admin/events" className="btn-secondary">
+              Back to Events
+            </Link>
+          </>
+        }
+        details={
+          <>
+            <div>
+              <dt className="font-semibold text-slate-900">Mode</dt>
+              <dd>{eventModeConfig.label}</dd>
+            </div>
+            <div className="md:col-span-2 xl:col-span-3">
+              <dt className="font-semibold text-slate-900">Assignment policy</dt>
+              <dd>{CLASS_ASSIGNMENT_POLICY}</dd>
+            </div>
+          </>
+        }
+      />
+
+      {event.eventMode !== "CLASS_ASSIGNMENT" ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          This event is currently configured as {eventModeConfig.label}. Class offerings are available, but directors will only see the class-assignment workflow automatically for CLASS_ASSIGNMENT events.
         </p>
-        <p className="mt-1 text-xs font-medium text-slate-500">{CLASS_ASSIGNMENT_POLICY}</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link
-            href={`/admin/events/${event.id}`}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Overseer
-          </Link>
-          <Link
-            href="/admin/events"
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-          >
-            Back to Events
-          </Link>
-        </div>
-      </header>
+      ) : null}
 
       {actionStatus && actionMessage ? (
         <p

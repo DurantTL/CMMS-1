@@ -111,6 +111,10 @@ body {
     @apply grid gap-6 lg:grid-cols-[270px_minmax(0,1fr)] lg:items-start;
   }
 
+  .admin-shell-grid {
+    @apply grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)] xl:items-start;
+  }
+
   .glass-sidebar,
   .glass-panel,
   .glass-card,
@@ -129,6 +133,100 @@ body {
 
   .glass-panel {
     @apply rounded-[1.9rem] p-6 sm:p-7;
+  }
+
+  .admin-topbar {
+    @apply sticky top-24 z-20 space-y-5 px-5 py-5 sm:px-6;
+  }
+
+  .admin-logo-lockup {
+    @apply inline-flex items-center gap-3;
+  }
+
+  .admin-logo-mark {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    box-shadow: 0 16px 34px rgba(47, 109, 246, 0.2);
+    @apply inline-flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-bold uppercase tracking-[0.16em] text-white;
+  }
+
+  .admin-search {
+    @apply w-full xl:max-w-xl;
+  }
+
+  .admin-search-input {
+    @apply h-11;
+  }
+
+  .admin-topbar-button {
+    @apply min-h-11 whitespace-nowrap px-3.5 py-2;
+  }
+
+  .admin-badge {
+    background: rgba(47, 109, 246, 0.12);
+    color: var(--accent-strong);
+    @apply inline-flex min-w-6 items-center justify-center rounded-full px-2 py-0.5 text-[0.68rem] font-bold;
+  }
+
+  .admin-topbar-menu {
+    @apply relative;
+  }
+
+  .admin-menu-surface {
+    border: 1px solid rgba(140, 164, 205, 0.24);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 248, 255, 0.92));
+    box-shadow: var(--shadow-soft);
+    @apply absolute right-0 z-30 mt-2 min-w-[13rem] rounded-2xl p-2;
+  }
+
+  .admin-menu-item {
+    @apply block rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-blue-50 hover:text-blue-700;
+  }
+
+  .admin-user-chip {
+    @apply min-h-11 gap-3 px-2.5 py-1.5;
+  }
+
+  .admin-user-avatar {
+    background: rgba(47, 109, 246, 0.12);
+    color: var(--accent-strong);
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold;
+  }
+
+  .admin-major-nav {
+    @apply border-t border-white/40 pt-4;
+  }
+
+  .admin-major-nav-scroll {
+    @apply flex gap-2 overflow-x-auto pb-1;
+  }
+
+  .admin-major-nav-link {
+    border: 1px solid transparent;
+    @apply min-w-[170px] rounded-2xl px-4 py-3 text-slate-700 transition hover:border-blue-200 hover:bg-white/70 hover:text-slate-900;
+  }
+
+  .admin-major-nav-link-active {
+    border-color: rgba(114, 156, 239, 0.34);
+    background: rgba(255, 255, 255, 0.76);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    @apply text-slate-950;
+  }
+
+  .admin-context-sidebar {
+    @apply h-fit xl:sticky xl:top-52;
+  }
+
+  .admin-page-header {
+    @apply px-6 py-6 sm:px-7;
+  }
+
+  .admin-page-header-details {
+    @apply grid gap-3 text-sm text-slate-700 md:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .admin-sidebar-backdrop {
+    background: rgba(17, 32, 61, 0.16);
+    @apply fixed inset-0 z-10;
   }
 
   .glass-card {
@@ -374,6 +472,16 @@ body {
 
   .nav-link-idle {
     @apply text-slate-700 hover:bg-white/70 hover:text-slate-950;
+  }
+
+  @media (max-width: 1279px) {
+    .admin-context-sidebar {
+      @apply fixed inset-y-24 left-4 z-20 w-[min(22rem,calc(100vw-2rem))] -translate-x-[120%] overflow-y-auto transition duration-200;
+    }
+
+    .admin-context-sidebar-open {
+      @apply translate-x-0;
+    }
   }
 }
 }
