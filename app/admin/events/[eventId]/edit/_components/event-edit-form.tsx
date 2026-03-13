@@ -10,6 +10,7 @@ import {
 type EventEditDefaults = {
   id: string;
   eventModeLabel: string;
+  eventModeDescription: string;
   name: string;
   description: string;
   startsAt: string;
@@ -39,6 +40,10 @@ export function EventEditForm({ defaults }: EventEditFormProps) {
         <p className="mt-1 text-sm text-slate-600">Update timeline, registration window, and pricing details.</p>
         <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
           Mode: {defaults.eventModeLabel}
+        </p>
+        <p className="mt-2 text-sm text-slate-600">{defaults.eventModeDescription}</p>
+        <p className="mt-2 text-xs text-slate-500">
+          Event mode is set during creation so downstream registration behavior stays predictable.
         </p>
       </div>
 

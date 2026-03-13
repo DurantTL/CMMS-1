@@ -1,5 +1,6 @@
 "use client";
 
+import { EventMode } from "@prisma/client";
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 
@@ -14,12 +15,18 @@ import {
 
 type EventDynamicFieldsEditorProps = {
   eventId: string;
+  eventMode: EventMode;
+  eventModeLabel: string;
+  eventModeDescription: string;
   initialFields: DynamicFieldDraft[];
   hasResponses: boolean;
 };
 
 export function EventDynamicFieldsEditor({
   eventId,
+  eventMode,
+  eventModeLabel,
+  eventModeDescription,
   initialFields,
   hasResponses,
 }: EventDynamicFieldsEditorProps) {
@@ -38,6 +45,24 @@ export function EventDynamicFieldsEditor({
         <p className="mt-1 text-sm text-slate-600">
           Update custom registration questions used by club directors for this event.
         </p>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <p className="font-semibold text-slate-900">{eventModeLabel}</p>
+        <p className="mt-1">{eventModeDescription}</p>
+        {eventMode === EventMode.BASIC_FORM ? (
+          <p className="mt-2 text-xs text-slate-600">
+            Keep questions club-scoped for this mode. Attendee-scoped and roster-selection questions are blocked.
+          </p>
+        ) : eventMode === EventMode.CLASS_ASSIGNMENT ? (
+          <p className="mt-2 text-xs text-slate-600">
+            This mode supports roster attendees now and class assignment after registration.
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-slate-600">
+            This mode supports normal roster attendee selection and dynamic registration prompts.
+          </p>
+        )}
       </div>
 
       {hasResponses ? (

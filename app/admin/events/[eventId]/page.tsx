@@ -31,6 +31,21 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
   const camporeeDashboard = await getCamporeeDashboardData(eventId).catch(() => null);
   const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csvData.content)}`;
   const eventModeConfig = getEventModeConfig(event.eventMode);
+  const workflowNotes =
+    event.eventMode === "BASIC_FORM"
+      ? [
+          "Directors complete club-level registration without roster attendee selection.",
+          "Dynamic questions should stay global to the club registration.",
+        ]
+      : event.eventMode === "CLASS_ASSIGNMENT"
+        ? [
+            "Directors register roster attendees first, then assign classes from the director workspace.",
+            "Class offerings should be maintained before registration traffic increases.",
+          ]
+        : [
+            "Directors register roster attendees and complete dynamic registration prompts.",
+            "Class assignment remains optional and is not part of the primary director flow.",
+          ];
 
   return (
     <section className="space-y-6">
@@ -99,6 +114,14 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
         <p className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
           {eventModeConfig.description}
         </p>
+        <div className="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+          <p className="font-semibold">Workflow Notes</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {workflowNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
         <h2 className="text-xl font-semibold text-slate-900">Club Registrations</h2>
         <p className="mt-1 text-sm text-slate-600">
           Conference-wide registration list and attendee totals across all clubs.

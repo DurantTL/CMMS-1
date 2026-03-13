@@ -118,6 +118,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
         defaults={{
           id: event.id,
           eventModeLabel: getEventModeConfig(event.eventMode).label,
+          eventModeDescription: getEventModeConfig(event.eventMode).description,
           name: event.name,
           description: event.description ?? "",
           startsAt: toDatetimeLocalValue(event.startsAt),
@@ -134,6 +135,9 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
 
       <EventDynamicFieldsEditor
         eventId={event.id}
+        eventMode={event.eventMode}
+        eventModeLabel={getEventModeConfig(event.eventMode).label}
+        eventModeDescription={getEventModeConfig(event.eventMode).description}
         initialFields={initialDynamicFields}
         hasResponses={hasResponses > 0}
       />
