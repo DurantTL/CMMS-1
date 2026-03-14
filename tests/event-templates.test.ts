@@ -52,7 +52,7 @@ test("event template snapshot preserves event defaults and dynamic fields", () =
     isRequired: true,
     options: [],
     conditionalFieldKey: "",
-    conditionalOperator: null,
+    conditionalOperator: "",
     conditionalValue: "",
   });
 });
@@ -228,6 +228,42 @@ test("event template snapshot parsing validates stored template payloads", () =>
   assert.equal(parsed.name, "Template A");
   assert.equal(parsed.eventMode, EventMode.BASIC_FORM);
   assert.equal(parsed.dynamicFields[0]?.type, FormFieldType.SHORT_TEXT);
+  assert.equal(parsed.dynamicFields[0]?.conditionalOperator, "");
+});
+
+test("event template snapshot parsing normalizes legacy null conditional operators", () => {
+  const parsed = parseEventTemplateSnapshot({
+    eventMode: EventMode.CLUB_REGISTRATION,
+    name: "Legacy Template",
+    description: "",
+    startsAt: "2026-04-10T12:00",
+    endsAt: "2026-04-12T18:00",
+    registrationOpensAt: "2026-03-01T00:00",
+    registrationClosesAt: "2026-04-01T00:00",
+    basePrice: 20,
+    lateFeePrice: 30,
+    lateFeeStartsAt: "2026-03-20T00:00",
+    locationName: "Camp",
+    locationAddress: "123 Road",
+    dynamicFields: [
+      {
+        id: "field-1",
+        parentFieldId: null,
+        key: "legacy_field",
+        label: "Legacy field",
+        description: "",
+        type: FormFieldType.SHORT_TEXT,
+        fieldScope: FormFieldScope.GLOBAL,
+        isRequired: false,
+        options: [],
+        conditionalFieldKey: "",
+        conditionalOperator: null,
+        conditionalValue: "",
+      },
+    ],
+  });
+
+  assert.equal(parsed.dynamicFields[0]?.conditionalOperator, "");
 });
 
 test("event template drafts serialize persisted template rows for the create wizard", () => {

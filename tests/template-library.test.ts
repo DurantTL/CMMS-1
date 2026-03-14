@@ -6,9 +6,10 @@ import {
   getTemplateCoverageSummary,
   getTemplateSectionSummaries,
 } from "../lib/template-library";
+import { type EventTemplateSnapshot } from "../lib/event-templates";
 
 test("template library summaries prefer field groups as included sections", () => {
-  const snapshot = {
+  const snapshot: EventTemplateSnapshot = {
     eventMode: EventMode.CLUB_REGISTRATION,
     name: "Camporee",
     description: "Camporee starter",
@@ -33,7 +34,7 @@ test("template library summaries prefer field groups as included sections", () =
         isRequired: false,
         options: [],
         conditionalFieldKey: "",
-        conditionalOperator: null,
+        conditionalOperator: "",
         conditionalValue: "",
       },
       {
@@ -47,7 +48,7 @@ test("template library summaries prefer field groups as included sections", () =
         isRequired: true,
         options: [],
         conditionalFieldKey: "",
-        conditionalOperator: null,
+        conditionalOperator: "",
         conditionalValue: "",
       },
       {
@@ -61,7 +62,7 @@ test("template library summaries prefer field groups as included sections", () =
         isRequired: false,
         options: ["Drill Team"],
         conditionalFieldKey: "",
-        conditionalOperator: null,
+        conditionalOperator: "",
         conditionalValue: "",
       },
     ],
@@ -75,4 +76,3 @@ test("template library summaries prefer field groups as included sections", () =
     attendeeFieldCount: 1,
   });
 });
-

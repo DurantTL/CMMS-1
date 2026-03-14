@@ -96,6 +96,8 @@ export function AdminCreateEventClient({
     }
 
     for (const [index, field] of dynamicFields.entries()) {
+      const conditionalOperator = field.conditionalOperator ?? "";
+
       if (field.label.trim().length === 0) {
         return t("pages.createEvent.validation.missingLabel", { index: index + 1 });
       }
@@ -104,22 +106,22 @@ export function AdminCreateEventClient({
         return t("pages.createEvent.validation.missingOptions", { label: field.label || `#${index + 1}` });
       }
 
-      if (field.conditionalFieldKey.trim().length > 0 && field.conditionalOperator.length === 0) {
+      if (field.conditionalFieldKey.trim().length > 0 && conditionalOperator.length === 0) {
         return t("pages.createEvent.validation.missingConditionalOperator", {
           label: field.label || `#${index + 1}`,
         });
       }
 
-      if (field.conditionalOperator.length > 0 && field.conditionalFieldKey.trim().length === 0) {
+      if (conditionalOperator.length > 0 && field.conditionalFieldKey.trim().length === 0) {
         return t("pages.createEvent.validation.missingConditionalSource", {
           label: field.label || `#${index + 1}`,
         });
       }
 
       if (
-        field.conditionalOperator.length > 0 &&
-        field.conditionalOperator !== "truthy" &&
-        field.conditionalOperator !== "falsy" &&
+        conditionalOperator.length > 0 &&
+        conditionalOperator !== "truthy" &&
+        conditionalOperator !== "falsy" &&
         field.conditionalValue.trim().length === 0
       ) {
         return t("pages.createEvent.validation.missingConditionalValue", {

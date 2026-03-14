@@ -112,6 +112,10 @@ function getFieldTypeList(parentFieldId: string | null) {
   return FIELD_TYPE_ORDER.filter((type) => allowed.has(type));
 }
 
+function getConditionalOperatorValue(field: Pick<DynamicFieldDraft, "conditionalOperator">) {
+  return field.conditionalOperator ?? "";
+}
+
 export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps) {
   const t = useTranslations("Admin");
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({});
@@ -246,8 +250,9 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
       : field.fieldScope === "ATTENDEE"
         ? t("pages.dynamicBuilder.attendeeIntent")
         : t("pages.dynamicBuilder.questionIntent");
+    const conditionalOperator = getConditionalOperatorValue(field);
     const hasConditionalVisibility =
-      field.conditionalFieldKey.length > 0 || field.conditionalOperator.length > 0;
+      field.conditionalFieldKey.length > 0 || conditionalOperator.length > 0;
 
     return (
       <>
@@ -497,7 +502,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                       updateField(field.id, {
                         conditionalFieldKey: event.currentTarget.checked ? field.conditionalFieldKey : "",
                         conditionalOperator: event.currentTarget.checked
-                          ? field.conditionalOperator || "equals"
+                          ? conditionalOperator || "equals"
                           : "",
                         conditionalValue: event.currentTarget.checked ? field.conditionalValue : "",
                       })
@@ -532,7 +537,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                   <label className="space-y-1.5 text-sm text-slate-700">
                     <span>{t("pages.dynamicBuilder.operator")}</span>
                     <select
-                      value={field.conditionalOperator || "equals"}
+                      value={conditionalOperator || "equals"}
                       onChange={(event) =>
                         updateField(field.id, {
                           conditionalOperator: event.currentTarget.value as EventFieldConditionalOperator,
@@ -549,7 +554,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                     </select>
                   </label>
 
-                  {field.conditionalOperator === "truthy" || field.conditionalOperator === "falsy" ? (
+                  {conditionalOperator === "truthy" || conditionalOperator === "falsy" ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
                       {t("pages.dynamicBuilder.noComparisonValue")}
                     </div>

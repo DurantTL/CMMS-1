@@ -25,7 +25,7 @@ export type EventTemplateDynamicField = {
   isRequired: boolean;
   options: string[];
   conditionalFieldKey: string;
-  conditionalOperator: EventFieldConditionalOperator | null;
+  conditionalOperator: EventFieldConditionalOperator | "";
   conditionalValue: string;
 };
 
@@ -177,7 +177,7 @@ export function buildEventTemplateSnapshot(input: {
         isRequired: field.isRequired,
         options: config.optionValues,
         conditionalFieldKey: config.conditional?.fieldKey ?? "",
-        conditionalOperator: config.conditional?.operator ?? null,
+        conditionalOperator: config.conditional?.operator ?? "",
         conditionalValue: config.conditional?.value ?? "",
       };
     }),
@@ -250,7 +250,7 @@ export function parseEventTemplateSnapshot(snapshot: Prisma.JsonValue): EventTem
         conditionalOperator: readNullableConditionalOperator(
           candidateField.conditionalOperator ?? null,
           `Template field ${index + 1} conditional operator`,
-        ),
+        ) ?? "",
         conditionalValue: readString(
           candidateField.conditionalValue ?? "",
           `Template field ${index + 1} conditional value`,
