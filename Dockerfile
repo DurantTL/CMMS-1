@@ -47,6 +47,7 @@ COPY package*.json ./
 RUN npm install --omit=dev --ignore-scripts
 
 COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
