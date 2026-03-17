@@ -1,3 +1,4 @@
+import { buildRegistrationConfirmationHtml, type RegistrationConfirmationAttendee } from "./registration-confirmation";
 import { buildRegistrationReceiptHtml } from "./templates/registration-receipt";
 import { buildAccountCredentialHtml } from "./templates/account-credentials";
 
@@ -14,6 +15,19 @@ type SendAccountCredentialInput = {
   role: string;
   temporaryPassword: string;
   loginUrl: string;
+};
+
+type SendRegistrationConfirmationInput = {
+  to: string;
+  eventName: string;
+  eventStartsAt: Date;
+  eventEndsAt: Date;
+  locationName: string | null;
+  locationAddress: string | null;
+  attendees: RegistrationConfirmationAttendee[];
+  totalDue: number;
+  paymentStatus: string;
+  eventId: string;
 };
 
 type SendDirectorReadinessReminderInput = {
@@ -86,6 +100,51 @@ export async function sendRegistrationReceiptEmail(input: SendRegistrationReceip
   if (!response.ok) {
     const payload = await response.text();
     throw new Error(`Failed to send registration receipt email: ${response.status} ${payload}`);
+  }
+}
+
+export async function sendRegistrationConfirmationEmail(input: SendRegistrationConfirmationInput) {
+  const config = getResendConfig();
+
+  if (!config) {
+    console.warn("Skipping registration confirmation email because RESEND_API_KEY or RESEND_FROM_EMAIL is not configured.");
+    return;
+  }
+
+  const contactEmail = normalizeEnvValue(process.env.CONFERENCE_CONTACT_EMAIL);
+  const appUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL) ?? "http://localhost:3000";
+
+  const html = buildRegistrationConfirmationHtml({
+    eventName: input.eventName,
+    eventStartsAt: input.eventStartsAt,
+    eventEndsAt: input.eventEndsAt,
+    locationName: input.locationName,
+    locationAddress: input.locationAddress,
+    attendees: input.attendees,
+    totalDue: input.totalDue,
+    paymentStatus: input.paymentStatus,
+    eventId: input.eventId,
+    appUrl,
+    contactEmail,
+  });
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: [input.to],
+      subject: `Registration confirmed: ${input.eventName}`,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    throw new Error(`Failed to send registration confirmation email: ${response.status} ${payload}`);
   }
 }
 
