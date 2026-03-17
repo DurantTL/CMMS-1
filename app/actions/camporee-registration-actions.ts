@@ -1,6 +1,6 @@
 "use server";
 
-import { PaymentStatus, RegistrationStatus, UserRole } from "@prisma/client";
+import { type Prisma, PaymentStatus, RegistrationStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -26,6 +26,23 @@ export type CamporeeRegistrationActionState = {
 const INITIAL_RESULT = {
   emailWarning: null as string | null,
 };
+
+function parseDynamicFieldResponses(raw: FormDataEntryValue | null): Record<string, unknown> {
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
 
 function requireTrimmedString(value: FormDataEntryValue | null, label: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -96,7 +113,11 @@ async function getCamporeeRegistrationContext(input: {
       registrationClosesAt: true,
       dynamicFields: {
         select: {
+          id: true,
           key: true,
+          type: true,
+          fieldScope: true,
+          label: true,
         },
       },
     },
@@ -134,6 +155,7 @@ async function persistCamporeeRegistrationForClub(input: {
   clubName: string;
   directorEmail: string | null;
   payload: CamporeeRegistrationPayload;
+  dynamicFieldResponses: Record<string, unknown>;
   nextStatus: RegistrationStatus;
 }) {
   const context = await getCamporeeRegistrationContext({
@@ -233,6 +255,29 @@ async function persistCamporeeRegistrationForClub(input: {
         data: attendeeIds.map((rosterMemberId) => ({
           eventRegistrationId: registration.id,
           rosterMemberId,
+        })),
+      });
+    }
+
+    // Persist dynamic field responses as EventFormResponse records (GLOBAL scope)
+    const validDynamicFieldIds = new Set(context.event.dynamicFields.map((f) => f.id));
+    const dynamicResponseEntries = Object.entries(input.dynamicFieldResponses).filter(
+      ([fieldId]) => validDynamicFieldIds.has(fieldId),
+    );
+
+    await tx.eventFormResponse.deleteMany({
+      where: {
+        eventRegistrationId: registration.id,
+      },
+    });
+
+    if (dynamicResponseEntries.length > 0) {
+      await tx.eventFormResponse.createMany({
+        data: dynamicResponseEntries.map(([fieldId, value]) => ({
+          eventRegistrationId: registration.id,
+          eventFormFieldId: fieldId,
+          attendeeId: null,
+          value: value as Prisma.InputJsonValue,
         })),
       });
     }
@@ -350,6 +395,7 @@ export async function saveCamporeeRegistrationDraft(
   try {
     const eventId = requireTrimmedString(formData.get("eventId"), "Event");
     const payload = parseCamporeeRegistrationPayload(formData.get("camporeePayload"));
+    const dynamicFieldResponses = parseDynamicFieldResponses(formData.get("dynamicFieldResponses"));
     const clubIdValue = formData.get("clubId");
     const context = await requireDirectorCamporeeContext(
       eventId,
@@ -362,6 +408,7 @@ export async function saveCamporeeRegistrationDraft(
       clubName: context.club.name,
       directorEmail: context.directorEmail,
       payload,
+      dynamicFieldResponses,
       nextStatus: RegistrationStatus.DRAFT,
     });
 
@@ -384,6 +431,7 @@ export async function submitCamporeeRegistration(
   try {
     const eventId = requireTrimmedString(formData.get("eventId"), "Event");
     const payload = parseCamporeeRegistrationPayload(formData.get("camporeePayload"));
+    const dynamicFieldResponses = parseDynamicFieldResponses(formData.get("dynamicFieldResponses"));
     const clubIdValue = formData.get("clubId");
     const context = await requireDirectorCamporeeContext(
       eventId,
@@ -396,6 +444,7 @@ export async function submitCamporeeRegistration(
       clubName: context.club.name,
       directorEmail: context.directorEmail,
       payload,
+      dynamicFieldResponses,
       nextStatus: RegistrationStatus.SUBMITTED,
     });
 
@@ -565,16 +614,25 @@ export async function getDirectorCamporeeRegistrationSnapshot(eventId: string, c
         },
       },
       camporeeRegistration: true,
+      formResponses: {
+        select: {
+          eventFormFieldId: true,
+          value: true,
+        },
+      },
     },
   });
 
   return {
     club: context.club,
     rosterMembers: context.rosterMembers,
-      registrationStatus: registration?.status ?? null,
-      reviewerNotes: registration?.reviewerNotes ?? null,
-      revisionRequestedReason: registration?.revisionRequestedReason ?? null,
-      existingPayload: registration?.camporeeRegistration
+    registrationStatus: registration?.status ?? null,
+    reviewerNotes: registration?.reviewerNotes ?? null,
+    revisionRequestedReason: registration?.revisionRequestedReason ?? null,
+    dynamicResponses: Object.fromEntries(
+      registration?.formResponses.map((r) => [r.eventFormFieldId, r.value]) ?? [],
+    ),
+    existingPayload: registration?.camporeeRegistration
       ? {
           attendeeIds: registration.attendees.map((attendee) => attendee.rosterMemberId),
           primaryContactName: registration.camporeeRegistration.primaryContactName,

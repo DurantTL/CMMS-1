@@ -296,6 +296,18 @@ export default async function DirectorEventRegistrationPage({
             memberRole: member.memberRole,
           }))}
           initialPayload={camporeeRegistrationSnapshot.existingPayload}
+          dynamicFields={event.dynamicFields
+            .filter((field) => field.type !== "FIELD_GROUP")
+            .map((field) => ({
+              id: field.id,
+              key: field.key,
+              label: field.label,
+              description: field.description,
+              type: field.type,
+              isRequired: field.isRequired,
+              options: field.options,
+            }))}
+          dynamicResponses={camporeeRegistrationSnapshot.dynamicResponses}
           registrationStatus={registration?.status ?? null}
           canEditRegistration={lifecycleState.canEdit}
           registrationNotice={lifecycleState.message}
