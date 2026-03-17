@@ -8,6 +8,7 @@ import { isCamporeeWorkflowEvent } from "../../../../lib/camporee-workflow";
 import { getManagedClubContext } from "../../../../lib/club-management";
 import { getEventModeConfig } from "../../../../lib/event-modes";
 import { getRegistrationLifecycleState } from "../../../../lib/registration-lifecycle";
+import { decryptMedicalFields } from "../../../../lib/medical-data";
 import { prisma } from "../../../../lib/prisma";
 import { buildDirectorPath } from "../../../../lib/director-path";
 import { CamporeeRegistrationWorkflow } from "./_components/camporee-registration-workflow";
@@ -55,6 +56,16 @@ export default async function DirectorEventRegistrationPage({
           members: {
             where: {
               isActive: true,
+            },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              memberRole: true,
+              dietaryRestrictions: true,
+              medicalFlags: true,
+              emergencyContactName: true,
+              emergencyContactPhone: true,
             },
             orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
           },
@@ -138,6 +149,19 @@ export default async function DirectorEventRegistrationPage({
   const registration = event.registrations[0] ?? null;
   const activeRoster = club.rosterYears[0];
   const attendees = activeRoster?.members ?? [];
+  const attendeeMedicalSummaries = attendees.map((member) => {
+    const decrypted = decryptMedicalFields({
+      medicalFlags: member.medicalFlags,
+      dietaryRestrictions: member.dietaryRestrictions,
+    });
+    return {
+      id: member.id,
+      dietaryRestrictions: decrypted.dietaryRestrictions,
+      medicalNotes: decrypted.medicalFlags,
+      emergencyContactName: member.emergencyContactName ?? null,
+      emergencyContactPhone: member.emergencyContactPhone ?? null,
+    };
+  });
   const attendeeCount = registration?.attendees.length ?? 0;
   const inLateFeeWindow = new Date() >= event.lateFeeStartsAt;
   const currentPricePerAttendee = inLateFeeWindow ? event.lateFeePrice : event.basePrice;
@@ -257,6 +281,7 @@ export default async function DirectorEventRegistrationPage({
             lastName: member.lastName,
             memberRole: member.memberRole,
           }))}
+          attendeeMedicalSummaries={attendeeMedicalSummaries}
           initialPayload={camporeeRegistrationSnapshot.existingPayload}
           registrationStatus={registration?.status ?? null}
           canEditRegistration={lifecycleState.canEdit}

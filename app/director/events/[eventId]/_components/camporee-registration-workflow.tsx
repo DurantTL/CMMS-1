@@ -23,10 +23,19 @@ type Attendee = {
   memberRole: string;
 };
 
+export type AttendeeMedicalSummary = {
+  id: string;
+  dietaryRestrictions: string | null;
+  medicalNotes: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+};
+
 type Props = {
   eventId: string;
   managedClubId: string | null;
   attendees: Attendee[];
+  attendeeMedicalSummaries: AttendeeMedicalSummary[];
   initialPayload: CamporeeRegistrationPayload;
   registrationStatus: string | null;
   canEditRegistration: boolean;
@@ -72,6 +81,7 @@ export function CamporeeRegistrationWorkflow({
   eventId,
   managedClubId,
   attendees,
+  attendeeMedicalSummaries,
   initialPayload,
   registrationStatus,
   canEditRegistration,
@@ -86,6 +96,10 @@ export function CamporeeRegistrationWorkflow({
 
   const selectedAttendeeSet = useMemo(() => new Set(payload.attendeeIds), [payload.attendeeIds]);
   const attendeeCount = payload.attendeeIds.length;
+  const medicalSummaryMap = useMemo(
+    () => new Map(attendeeMedicalSummaries.map((s) => [s.id, s])),
+    [attendeeMedicalSummaries],
+  );
 
   function updateField<Key extends keyof CamporeeRegistrationPayload>(key: Key, value: CamporeeRegistrationPayload[Key]) {
     setPayload((current) => ({
@@ -288,6 +302,27 @@ export function CamporeeRegistrationWorkflow({
         ) : null}
 
         {currentSection === "meals" ? (
+          <div className="space-y-6">
+            {(() => {
+              const selectedWithDiet = attendees.filter(
+                (a) => selectedAttendeeSet.has(a.id) && medicalSummaryMap.get(a.id)?.dietaryRestrictions,
+              );
+              if (selectedWithDiet.length === 0) return null;
+              return (
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Dietary restrictions on file</p>
+                  <p className="mt-0.5 text-xs text-slate-500">Pre-filled from roster — display only, does not overwrite your notes.</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {selectedWithDiet.map((a) => (
+                      <div key={a.id} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+                        <p className="font-semibold text-slate-900">{attendeeName(a)}</p>
+                        <p className="mt-1 text-slate-700">{medicalSummaryMap.get(a.id)?.dietaryRestrictions}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1 text-sm text-slate-700">
               <span>Meal plan</span>
@@ -315,6 +350,7 @@ export function CamporeeRegistrationWorkflow({
               <span>Dietary notes</span>
               <textarea value={payload.dietaryNotes} onChange={(event) => updateField("dietaryNotes", event.target.value)} rows={3} className="w-full rounded-lg border border-slate-300 px-3 py-2" />
             </label>
+          </div>
           </div>
         ) : null}
 
@@ -356,6 +392,43 @@ export function CamporeeRegistrationWorkflow({
         ) : null}
 
         {currentSection === "safety" ? (
+          <div className="space-y-6">
+            {(() => {
+              const selectedWithSafety = attendees.filter((a) => {
+                if (!selectedAttendeeSet.has(a.id)) return false;
+                const s = medicalSummaryMap.get(a.id);
+                return s && (s.emergencyContactName || s.medicalNotes);
+              });
+              if (selectedWithSafety.length === 0) return null;
+              return (
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Roster safety information on file</p>
+                  <p className="mt-0.5 text-xs text-slate-500">Pre-filled from roster — display only, does not overwrite your notes.</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {selectedWithSafety.map((a) => {
+                      const s = medicalSummaryMap.get(a.id)!;
+                      return (
+                        <div key={a.id} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+                          <p className="font-semibold text-slate-900">{attendeeName(a)}</p>
+                          {s.emergencyContactName ? (
+                            <p className="mt-1 text-slate-700">
+                              <span className="font-medium">Emergency contact:</span>{" "}
+                              {s.emergencyContactName}
+                              {s.emergencyContactPhone ? ` · ${s.emergencyContactPhone}` : ""}
+                            </p>
+                          ) : null}
+                          {s.medicalNotes ? (
+                            <p className="mt-1 text-slate-700">
+                              <span className="font-medium">Medical notes:</span> {s.medicalNotes}
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1 text-sm text-slate-700">
               <span>Emergency contact name</span>
@@ -377,6 +450,7 @@ export function CamporeeRegistrationWorkflow({
               <span>Emergency and safety notes</span>
               <textarea value={payload.emergencyNotes} onChange={(event) => updateField("emergencyNotes", event.target.value)} rows={3} className="w-full rounded-lg border border-slate-300 px-3 py-2" />
             </label>
+          </div>
           </div>
         ) : null}
 
