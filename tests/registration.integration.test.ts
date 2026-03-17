@@ -108,7 +108,7 @@ test("registration persistence enforces submit requirements and locks submitted 
       },
       nextStatus: RegistrationStatus.SUBMITTED,
       now: new Date("2026-03-10T12:00:00.000Z"),
-      sendReceiptEmail: async () => undefined,
+      sendConfirmationEmail: async () => undefined,
     }),
   );
 
@@ -129,7 +129,7 @@ test("registration persistence enforces submit requirements and locks submitted 
       },
     nextStatus: RegistrationStatus.SUBMITTED,
     now: new Date("2026-03-10T12:00:00.000Z"),
-    sendReceiptEmail: async () => undefined,
+    sendConfirmationEmail: async () => undefined,
   });
 
   const saved = await prisma.eventRegistration.findUniqueOrThrow({
@@ -161,7 +161,7 @@ test("registration persistence enforces submit requirements and locks submitted 
       },
       nextStatus: RegistrationStatus.DRAFT,
       now: new Date("2026-03-10T12:30:00.000Z"),
-      sendReceiptEmail: async () => undefined,
+      sendConfirmationEmail: async () => undefined,
     }),
   );
 });
@@ -270,7 +270,7 @@ test("conditional camporee questions are only required and persisted when their 
     },
     nextStatus: RegistrationStatus.SUBMITTED,
     now: new Date("2026-03-10T12:00:00.000Z"),
-    sendReceiptEmail: async () => undefined,
+    sendConfirmationEmail: async () => undefined,
   });
 
   const savedResponses = await prisma.eventFormResponse.findMany({

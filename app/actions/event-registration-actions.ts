@@ -4,7 +4,7 @@ import { FormFieldScope, MemberRole, PaymentStatus, RegistrationStatus, type Pri
 import { revalidatePath } from "next/cache";
 
 import { getManagedClubContext } from "../../lib/club-management";
-import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
+import { sendRegistrationConfirmationEmail } from "../../lib/email/resend";
 import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-config";
 import { getFieldScope } from "../../lib/event-form-scope";
 import { getEventModeConfig } from "../../lib/event-modes";
@@ -215,6 +215,10 @@ async function getClubRegistrationContext(input: {
       id: true,
       name: true,
       eventMode: true,
+      startsAt: true,
+      endsAt: true,
+      locationName: true,
+      locationAddress: true,
       basePrice: true,
       lateFeePrice: true,
       lateFeeStartsAt: true,
@@ -279,7 +283,7 @@ export async function persistRegistrationForClub(input: {
   payload: RegistrationPayload;
   nextStatus: RegistrationStatus;
   now?: Date;
-  sendReceiptEmail?: typeof sendRegistrationReceiptEmail;
+  sendConfirmationEmail?: typeof sendRegistrationConfirmationEmail;
 }) {
   const {
     event,
@@ -505,17 +509,44 @@ export async function persistRegistrationForClub(input: {
   revalidatePath("/director/dashboard");
   revalidatePath("/director/events");
 
-  if (input.nextStatus === RegistrationStatus.SUBMITTED && input.directorEmail) {
-    try {
-      await (input.sendReceiptEmail ?? sendRegistrationReceiptEmail)({
-        to: input.directorEmail,
-        clubName: input.clubName,
-        eventName: event.name,
-        attendeeCount: attendeeIds.length,
-      });
-    } catch (error) {
-      console.error("Registration was saved, but the receipt email failed to send.", error);
-      emailWarning = "Registration submitted, but the confirmation email could not be sent.";
+  if (input.nextStatus === RegistrationStatus.SUBMITTED) {
+    const directorMembership = await prisma.clubMembership.findFirst({
+      where: {
+        clubId: input.clubId,
+        user: { role: "CLUB_DIRECTOR" },
+      },
+      select: {
+        user: { select: { email: true } },
+      },
+      orderBy: { isPrimary: "desc" },
+    });
+
+    const directorEmail = directorMembership?.user?.email ?? input.directorEmail;
+
+    if (directorEmail) {
+      const attendeeLookup = new Map(rosterMembers.map((m) => [m.id, m]));
+      const attendeeList = attendeeIds
+        .map((id) => attendeeLookup.get(id))
+        .filter((m): m is NonNullable<typeof m> => Boolean(m))
+        .map((m) => ({ name: `${m.firstName} ${m.lastName}`, role: m.memberRole }));
+
+      try {
+        await (input.sendConfirmationEmail ?? sendRegistrationConfirmationEmail)({
+          to: directorEmail,
+          eventName: event.name,
+          eventStartsAt: event.startsAt,
+          eventEndsAt: event.endsAt,
+          locationName: event.locationName,
+          locationAddress: event.locationAddress,
+          attendees: attendeeList,
+          totalDue,
+          paymentStatus: totalDue <= 0 ? "PAID" : "PENDING",
+          eventId: input.eventId,
+        });
+      } catch (error) {
+        console.error("Registration was saved, but the confirmation email failed to send.", error);
+        emailWarning = "Registration submitted, but the confirmation email could not be sent.";
+      }
     }
   }
 
