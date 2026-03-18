@@ -406,6 +406,7 @@ model Event {
   lateFeeStartsAt      DateTime
   locationName         String?
   locationAddress      String?
+  reviewTurnaroundDays Int?
   createdByUserId      String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
@@ -484,6 +485,7 @@ model EventRegistration {
   squarePaymentId       String?
   squareCheckoutUrl     String?
   squareOrderId         String?
+  campsiteAssignment    String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
