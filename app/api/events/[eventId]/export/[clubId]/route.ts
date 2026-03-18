@@ -6,7 +6,7 @@ import { auth } from "../../../../../../auth";
 import { getEventRegistrationExportData } from "../../../../../../lib/data/event-registration-export";
 import {
   EventRegistrationPdfDocument,
-  generateQrDataUrls,
+  generateAttendeeQrCodes,
 } from "../../../../../../lib/pdf/event-registration-pdf";
 import { prisma } from "../../../../../../lib/prisma";
 
@@ -62,13 +62,13 @@ export async function GET(
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 
-  const qrDataUrls = registration.attendees.length > 0
-    ? await generateQrDataUrls(registration.attendees, registration.id)
+  const attendeeQrCodes = registration.attendees.length > 0
+    ? await generateAttendeeQrCodes(registration.attendees)
     : undefined;
 
   const documentElement = createElement(EventRegistrationPdfDocument, {
     data: registration,
-    qrDataUrls,
+    attendeeQrCodes,
   }) as ReactElement<DocumentProps>;
 
   const buffer = await renderToBuffer(documentElement);

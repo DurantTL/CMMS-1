@@ -196,28 +196,19 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontStyle: "italic",
   },
-  qrPage: {
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 30,
-    fontSize: 10,
-    color: "#0f172a",
-    lineHeight: 1.35,
-  },
   qrGrid: {
     display: "flex",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginTop: 12,
   },
   qrCard: {
-    width: "30%",
+    width: "22%",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: "#f8fafc",
+    borderColor: "#e2e8f0",
+    borderRadius: 6,
+    padding: 8,
+    backgroundColor: "#ffffff",
     alignItems: "center",
   },
   qrImage: {
@@ -225,22 +216,16 @@ const styles = StyleSheet.create({
     height: 80,
   },
   qrName: {
-    marginTop: 6,
-    fontSize: 9,
+    marginTop: 4,
+    fontSize: 8,
     fontWeight: 700,
-    textAlign: "center",
     color: "#0f172a",
+    textAlign: "center",
   },
   qrRole: {
-    fontSize: 8,
+    fontSize: 7,
     color: "#64748b",
     textAlign: "center",
-  },
-  qrId: {
-    fontSize: 7,
-    color: "#94a3b8",
-    textAlign: "center",
-    marginTop: 2,
   },
   campsitePanel: {
     borderWidth: 1,
@@ -255,17 +240,17 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   paymentBadgePaid: {
-    fontSize: 9,
+    fontSize: 10,
     color: "#065f46",
     fontWeight: 700,
   },
   paymentBadgePending: {
-    fontSize: 9,
+    fontSize: 10,
     color: "#92400e",
     fontWeight: 700,
   },
   paymentBadgePartial: {
-    fontSize: 9,
+    fontSize: 10,
     color: "#1e40af",
     fontWeight: 700,
   },
@@ -409,27 +394,24 @@ function paymentStatusStyle(status: string) {
   return styles.paymentBadgePending;
 }
 
-export async function generateQrDataUrls(
+/**
+ * Generates QR code data URLs keyed by rosterMemberId.
+ * Each QR encodes the rosterMemberId for on-site individual check-in.
+ */
+export async function generateAttendeeQrCodes(
   attendees: RegistrationData["attendees"],
-  registrationId: string,
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
 
   await Promise.all(
     attendees.map(async (attendee) => {
-      const payload = JSON.stringify({
-        registrationId,
-        attendeeId: attendee.id,
-        rosterMemberId: attendee.rosterMemberId,
-      });
-
-      const dataUrl = await qrcode.toDataURL(payload, {
+      const dataUrl = await qrcode.toDataURL(attendee.rosterMemberId, {
         errorCorrectionLevel: "M",
         margin: 1,
         width: 160,
       });
 
-      map.set(attendee.id, dataUrl);
+      map.set(attendee.rosterMemberId, dataUrl);
     }),
   );
 
@@ -438,10 +420,10 @@ export async function generateQrDataUrls(
 
 export function EventRegistrationPdfDocument({
   data,
-  qrDataUrls,
+  attendeeQrCodes,
 }: {
   data: RegistrationData;
-  qrDataUrls?: Map<string, string>;
+  attendeeQrCodes?: Map<string, string>;
 }) {
   const stats = summarizeCounts(data);
   const sortedAttendees = [...data.attendees].sort((a, b) => {
@@ -511,7 +493,7 @@ export function EventRegistrationPdfDocument({
             </View>
             <View style={styles.headerMetaItem}>
               <Text style={styles.headerMetaLabel}>Director</Text>
-              <Text style={styles.headerMetaValue}>{directorName ?? "—"}</Text>
+              <Text style={styles.headerMetaValue}>{directorName ?? "\u2014"}</Text>
             </View>
             <View style={styles.headerMetaItem}>
               <Text style={styles.headerMetaLabel}>Submitted At</Text>
@@ -689,33 +671,31 @@ export function EventRegistrationPdfDocument({
         })}
       </Page>
 
-      {qrDataUrls && qrDataUrls.size > 0 ? (
-        <Page size="A4" style={styles.qrPage}>
-          <Text style={styles.pageBreakTitle}>Attendee Check-in QR Codes</Text>
+      {attendeeQrCodes && attendeeQrCodes.size > 0 && (
+        <Page size="A4" style={styles.page}>
+          <Text style={styles.pageBreakTitle}>Attendee QR Codes</Text>
           <Text style={styles.pageBreakSubtitle}>
-            One QR code per attendee. Scan at the gate for individual check-in.
+            Scan each code at the gate to check in individual attendees.
           </Text>
-
           <View style={styles.qrGrid}>
             {sortedAttendees.map((attendee) => {
-              const dataUrl = qrDataUrls.get(attendee.id);
-              if (!dataUrl) return null;
-
+              const qrDataUrl = attendeeQrCodes.get(attendee.rosterMemberId);
               return (
-                <View key={`qr-${attendee.id}`} style={styles.qrCard}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <Image src={dataUrl} style={styles.qrImage} />
+                <View key={attendee.id} style={styles.qrCard}>
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
+                    <Image src={qrDataUrl} style={styles.qrImage} />
+                  ) : null}
                   <Text style={styles.qrName}>
                     {attendee.rosterMember.firstName} {attendee.rosterMember.lastName}
                   </Text>
                   <Text style={styles.qrRole}>{friendlyRole(attendee.rosterMember.memberRole)}</Text>
-                  <Text style={styles.qrId}>{attendee.id.slice(-8)}</Text>
                 </View>
               );
             })}
           </View>
         </Page>
-      ) : null}
+      )}
     </Document>
   );
 }

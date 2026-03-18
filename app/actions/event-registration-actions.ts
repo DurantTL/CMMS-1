@@ -10,7 +10,7 @@ import { sendRegistrationConfirmationEmail } from "../../lib/email/resend";
 import { getEventRegistrationExportDataById } from "../../lib/data/event-registration-export";
 import {
   EventRegistrationPdfDocument,
-  generateQrDataUrls,
+  generateAttendeeQrCodes,
 } from "../../lib/pdf/event-registration-pdf";
 import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-config";
 import { getFieldScope } from "../../lib/event-form-scope";
@@ -544,13 +544,13 @@ export async function persistRegistrationForClub(input: {
           const exportData = await getEventRegistrationExportDataById(savedRegistrationId);
 
           if (exportData) {
-            const qrDataUrls = exportData.attendees.length > 0
-              ? await generateQrDataUrls(exportData.attendees, savedRegistrationId)
+            const attendeeQrCodes = exportData.attendees.length > 0
+              ? await generateAttendeeQrCodes(exportData.attendees)
               : undefined;
 
             const documentElement = createElement(EventRegistrationPdfDocument, {
               data: exportData,
-              qrDataUrls,
+              attendeeQrCodes,
             }) as ReactElement<DocumentProps>;
 
             const buffer = await renderToBuffer(documentElement);
