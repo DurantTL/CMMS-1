@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
+import { type Prisma } from "@prisma/client";
 
 import {
   type CamporeeRegistrationActionState,
@@ -15,6 +16,7 @@ import {
   CAMPOREE_MEAL_PLANS,
   CAMPOREE_PARTICIPATION_HIGHLIGHTS,
 } from "../../../../../lib/camporee-workflow";
+import { readEventFieldConfig } from "../../../../../lib/event-form-config";
 
 type Attendee = {
   id: string;
@@ -31,12 +33,24 @@ export type AttendeeMedicalSummary = {
   emergencyContactPhone: string | null;
 };
 
+export type DynamicField = {
+  id: string;
+  key: string;
+  label: string;
+  description: string | null;
+  type: string;
+  isRequired: boolean;
+  options: Prisma.JsonValue | null;
+};
+
 type Props = {
   eventId: string;
   managedClubId: string | null;
   attendees: Attendee[];
   attendeeMedicalSummaries: AttendeeMedicalSummary[];
   initialPayload: CamporeeRegistrationPayload;
+  dynamicFields: DynamicField[];
+  dynamicResponses: Record<string, unknown>;
   registrationStatus: string | null;
   canEditRegistration: boolean;
   registrationNotice: string | null;
@@ -49,32 +63,40 @@ const INITIAL_ACTION_STATE: CamporeeRegistrationActionState = {
   message: null,
 };
 
-const SECTION_ORDER = [
+const BASE_SECTION_NAMES = {
+  "club-info": "Club Information",
+  attendance: "Attendance & Roster",
+  campsite: "Campsite Needs",
+  travel: "Travel & Arrival",
+  meals: "Meals & Food Planning",
+  participation: "Participation Planning",
+  "dynamic-fields": "Event-Specific Questions",
+  safety: "Safety / Emergency",
+  ministry: "Spiritual / Ministry Items",
+  review: "Final Review",
+} as const;
+
+type SectionId = keyof typeof BASE_SECTION_NAMES;
+
+const FULL_SECTION_ORDER: SectionId[] = [
   "club-info",
   "attendance",
   "campsite",
   "travel",
   "meals",
   "participation",
+  "dynamic-fields",
   "safety",
   "ministry",
   "review",
-] as const;
-
-const SECTION_LABELS: Record<(typeof SECTION_ORDER)[number], string> = {
-  "club-info": "1. Club Information",
-  attendance: "2. Attendance & Roster",
-  campsite: "3. Campsite Needs",
-  travel: "4. Travel & Arrival",
-  meals: "5. Meals & Food Planning",
-  participation: "6. Participation Planning",
-  safety: "7. Safety / Emergency",
-  ministry: "8. Spiritual / Ministry Items",
-  review: "9. Final Review",
-};
+];
 
 function attendeeName(attendee: Attendee) {
   return `${attendee.firstName} ${attendee.lastName}`;
+}
+
+function parseFieldOptions(options: Prisma.JsonValue | null) {
+  return readEventFieldConfig(options).optionValues;
 }
 
 export function CamporeeRegistrationWorkflow({
@@ -83,6 +105,8 @@ export function CamporeeRegistrationWorkflow({
   attendees,
   attendeeMedicalSummaries,
   initialPayload,
+  dynamicFields,
+  dynamicResponses,
   registrationStatus,
   canEditRegistration,
   registrationNotice,
@@ -90,9 +114,17 @@ export function CamporeeRegistrationWorkflow({
   revisionRequestedReason,
 }: Props) {
   const [payload, setPayload] = useState<CamporeeRegistrationPayload>(initialPayload);
-  const [currentSection, setCurrentSection] = useState<(typeof SECTION_ORDER)[number]>("club-info");
+  const [dynamicFieldState, setDynamicFieldState] = useState<Record<string, unknown>>(dynamicResponses);
+  const [currentSection, setCurrentSection] = useState<SectionId>("club-info");
   const [draftState, draftAction] = useFormState(saveCamporeeRegistrationDraft, INITIAL_ACTION_STATE);
   const [submitState, submitAction] = useFormState(submitCamporeeRegistration, INITIAL_ACTION_STATE);
+
+  const sectionOrder = useMemo<SectionId[]>(() => {
+    if (dynamicFields.length === 0) {
+      return FULL_SECTION_ORDER.filter((id) => id !== "dynamic-fields");
+    }
+    return FULL_SECTION_ORDER;
+  }, [dynamicFields.length]);
 
   const selectedAttendeeSet = useMemo(() => new Set(payload.attendeeIds), [payload.attendeeIds]);
   const attendeeCount = payload.attendeeIds.length;
@@ -130,8 +162,140 @@ export function CamporeeRegistrationWorkflow({
     }));
   }
 
+  function updateDynamicField(fieldId: string, value: unknown) {
+    setDynamicFieldState((current) => ({
+      ...current,
+      [fieldId]: value,
+    }));
+  }
+
+  function renderDynamicFieldInput(
+    field: DynamicField,
+    currentValue: unknown,
+    onValueChange: (value: unknown) => void,
+  ) {
+    if (field.type === "BOOLEAN") {
+      return (
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={Boolean(currentValue)}
+            onChange={(event) => onValueChange(event.target.checked)}
+          />
+          Yes
+        </label>
+      );
+    }
+
+    if (field.type === "MULTI_SELECT") {
+      const options = parseFieldOptions(field.options);
+      const value = Array.isArray(currentValue) ? (currentValue as string[]) : [];
+
+      return (
+        <div className="space-y-1">
+          {options.map((option) => (
+            <label key={option} className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={value.includes(option)}
+                onChange={(event) => {
+                  const next = event.target.checked
+                    ? [...new Set([...value, option])]
+                    : value.filter((v) => v !== option);
+                  onValueChange(next);
+                }}
+              />
+              {option}
+            </label>
+          ))}
+        </div>
+      );
+    }
+
+    if (field.type === "SINGLE_SELECT") {
+      const options = parseFieldOptions(field.options);
+      const value = typeof currentValue === "string" ? currentValue : "";
+
+      return (
+        <select
+          value={value}
+          onChange={(event) => onValueChange(event.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        >
+          <option value="">Select...</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.type === "NUMBER") {
+      return (
+        <input
+          type="number"
+          value={typeof currentValue === "number" ? currentValue : ""}
+          onChange={(event) =>
+            onValueChange(event.target.value === "" ? "" : Number(event.target.value))
+          }
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      );
+    }
+
+    if (field.type === "DATE") {
+      return (
+        <input
+          type="date"
+          value={typeof currentValue === "string" ? currentValue : ""}
+          onChange={(event) => onValueChange(event.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      );
+    }
+
+    if (field.type === "LONG_TEXT") {
+      return (
+        <textarea
+          value={typeof currentValue === "string" ? currentValue : ""}
+          onChange={(event) => onValueChange(event.target.value)}
+          rows={4}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2"
+        />
+      );
+    }
+
+    return (
+      <input
+        type="text"
+        value={typeof currentValue === "string" ? currentValue : ""}
+        onChange={(event) => onValueChange(event.target.value)}
+        className="w-full rounded-lg border border-slate-300 px-3 py-2"
+      />
+    );
+  }
+
   const payloadJson = JSON.stringify(payload);
-  const currentIndex = SECTION_ORDER.indexOf(currentSection);
+  const dynamicFieldResponsesJson = JSON.stringify(dynamicFieldState);
+  const currentIndex = sectionOrder.indexOf(currentSection);
+
+  const sectionLabels = useMemo<Record<SectionId, string>>(() => {
+    const labels = {} as Record<SectionId, string>;
+    let i = 1;
+    for (const id of sectionOrder) {
+      labels[id] = `${i}. ${BASE_SECTION_NAMES[id]}`;
+      i++;
+    }
+    // Fill in any sections not in the order (shouldn't render but keeps the type happy)
+    for (const id of FULL_SECTION_ORDER) {
+      if (!(id in labels)) {
+        labels[id] = BASE_SECTION_NAMES[id];
+      }
+    }
+    return labels;
+  }, [sectionOrder]);
 
   return (
     <article className="glass-panel space-y-6">
@@ -182,14 +346,14 @@ export function CamporeeRegistrationWorkflow({
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {SECTION_ORDER.map((sectionId) => (
+        {sectionOrder.map((sectionId) => (
           <button
             key={sectionId}
             type="button"
             onClick={() => setCurrentSection(sectionId)}
             className={`rounded-full px-3 py-2 text-xs font-semibold ${currentSection === sectionId ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700"}`}
           >
-            {SECTION_LABELS[sectionId]}
+            {sectionLabels[sectionId]}
           </button>
         ))}
       </div>
@@ -391,6 +555,30 @@ export function CamporeeRegistrationWorkflow({
           </div>
         ) : null}
 
+        {currentSection === "dynamic-fields" && dynamicFields.length > 0 ? (
+          <div className="space-y-5">
+            <p className="text-sm text-slate-600">
+              These questions are specific to this event. Please answer all required fields before submitting.
+            </p>
+            {dynamicFields.map((field) => (
+              <div key={field.id} className="space-y-2">
+                <p className="text-sm font-semibold text-slate-900">
+                  {field.label}
+                  {field.isRequired ? <span className="ml-1 text-rose-600">*</span> : null}
+                </p>
+                {field.description ? (
+                  <p className="text-xs text-slate-500">{field.description}</p>
+                ) : null}
+                {renderDynamicFieldInput(
+                  field,
+                  dynamicFieldState[field.id],
+                  (value) => updateDynamicField(field.id, value),
+                )}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         {currentSection === "safety" ? (
           <div className="space-y-6">
             {(() => {
@@ -487,6 +675,19 @@ export function CamporeeRegistrationWorkflow({
                 <p className="mt-2 text-2xl font-semibold text-slate-900">{payload.mealPlan}</p>
               </div>
             </div>
+            {dynamicFields.length > 0 ? (
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Event-Specific Questions</p>
+                <dl className="mt-2 space-y-2 text-sm text-slate-700">
+                  {dynamicFields.map((field) => (
+                    <div key={field.id} className="flex flex-wrap gap-2">
+                      <dt className="font-semibold">{field.label}:</dt>
+                      <dd>{formatDynamicFieldValue(dynamicFieldState[field.id])}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
             <label className="space-y-1 text-sm text-slate-700">
               <span>Final review notes for the conference team</span>
               <textarea value={payload.finalReviewNotes} onChange={(event) => updateField("finalReviewNotes", event.target.value)} rows={4} className="w-full rounded-lg border border-slate-300 px-3 py-2" />
@@ -500,7 +701,7 @@ export function CamporeeRegistrationWorkflow({
           type="button"
           className="btn-secondary"
           disabled={currentIndex === 0}
-          onClick={() => setCurrentSection(SECTION_ORDER[Math.max(0, currentIndex - 1)])}
+          onClick={() => setCurrentSection(sectionOrder[Math.max(0, currentIndex - 1)])}
         >
           Previous Section
         </button>
@@ -509,19 +710,21 @@ export function CamporeeRegistrationWorkflow({
             <input type="hidden" name="eventId" value={eventId} readOnly />
             {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} readOnly /> : null}
             <input type="hidden" name="camporeePayload" value={payloadJson} readOnly />
+            <input type="hidden" name="dynamicFieldResponses" value={dynamicFieldResponsesJson} readOnly />
             <button type="submit" disabled={!canEditRegistration} className="btn-secondary">Save Draft</button>
           </form>
           <form action={submitAction}>
             <input type="hidden" name="eventId" value={eventId} readOnly />
             {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} readOnly /> : null}
             <input type="hidden" name="camporeePayload" value={payloadJson} readOnly />
+            <input type="hidden" name="dynamicFieldResponses" value={dynamicFieldResponsesJson} readOnly />
             <button type="submit" disabled={!canEditRegistration} className="btn-primary">Submit Camporee Registration</button>
           </form>
           <button
             type="button"
             className="btn-secondary"
-            disabled={currentIndex === SECTION_ORDER.length - 1}
-            onClick={() => setCurrentSection(SECTION_ORDER[Math.min(SECTION_ORDER.length - 1, currentIndex + 1)])}
+            disabled={currentIndex === sectionOrder.length - 1}
+            onClick={() => setCurrentSection(sectionOrder[Math.min(sectionOrder.length - 1, currentIndex + 1)])}
           >
             Next Section
           </button>
@@ -529,4 +732,20 @@ export function CamporeeRegistrationWorkflow({
       </div>
     </article>
   );
+}
+
+function formatDynamicFieldValue(value: unknown): string {
+  if (value === null || typeof value === "undefined" || value === "") {
+    return "—";
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0 ? "—" : value.join(", ");
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  return String(value);
 }
