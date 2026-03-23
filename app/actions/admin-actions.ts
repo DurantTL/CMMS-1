@@ -428,7 +428,7 @@ export async function getAdminDashboardOverview() {
 
   const now = new Date();
 
-  const [totalActiveClubs, totalConferenceMembers, upcomingEvents, systemHealth] = await Promise.all([
+  const [totalActiveClubs, totalConferenceMembers, upcomingEvents, systemHealth, pendingTltApplications] = await Promise.all([
     prisma.club.count(),
     prisma.rosterMember.count({
       where: {
@@ -457,6 +457,7 @@ export async function getAdminDashboardOverview() {
       },
     }),
     getSystemHealthSummary(),
+    prisma.tltApplication.count({ where: { status: "PENDING" } }),
   ]);
 
   return {
@@ -464,6 +465,7 @@ export async function getAdminDashboardOverview() {
     totalConferenceMembers,
     upcomingEvents,
     systemHealth,
+    pendingTltApplications,
   };
 }
 

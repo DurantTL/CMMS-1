@@ -193,6 +193,88 @@ export async function sendAccountCredentialEmail(input: SendAccountCredentialInp
   };
 }
 
+type SendTltApplicationDecisionInput = {
+  to: string;
+  directorName: string;
+  clubName: string;
+  applicantName: string;
+  decision: "APPROVED" | "REJECTED";
+};
+
+export async function sendTltApplicationDecisionEmail(input: SendTltApplicationDecisionInput) {
+  const config = getResendConfig();
+
+  if (!config) {
+    console.warn("Skipping TLT decision email because RESEND_API_KEY or RESEND_FROM_EMAIL is not configured.");
+    return;
+  }
+
+  const appUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL) ?? "http://localhost:3000";
+  const isApproved = input.decision === "APPROVED";
+  const decisionLabel = isApproved ? "Approved" : "Denied";
+  const accentColor = isApproved ? "#16a34a" : "#dc2626";
+
+  const html = `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TLT Application ${decisionLabel}</title>
+      </head>
+      <body style="margin:0;padding:0;background-color:#f6f7fb;font-family:Arial,sans-serif;color:#1f2937;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+                <tr>
+                  <td style="background:#0f172a;color:#ffffff;padding:20px 24px;font-size:20px;font-weight:700;">
+                    TLT Application ${decisionLabel}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:24px;line-height:1.6;font-size:16px;">
+                    <p style="margin:0 0 16px;">Hi ${input.directorName},</p>
+                    <p style="margin:0 0 16px;">
+                      The TLT application for <strong>${input.applicantName}</strong> from <strong>${input.clubName}</strong>
+                      has been <span style="color:${accentColor};font-weight:700;">${decisionLabel.toUpperCase()}</span>.
+                    </p>
+                    <p style="margin:0 0 24px;">
+                      You can view the updated application status in the director portal.
+                    </p>
+                    <a href="${appUrl}/director/tlt" style="display:inline-block;background:#0f172a;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">
+                      View TLT Applications
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: [input.to],
+      subject: `TLT application ${decisionLabel.toLowerCase()}: ${input.applicantName}`,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    throw new Error(`Failed to send TLT decision email: ${response.status} ${payload}`);
+  }
+}
+
 export async function sendDirectorReadinessReminderEmail(input: SendDirectorReadinessReminderInput) {
   const config = getResendConfig();
 
