@@ -31,6 +31,34 @@ type SendRegistrationConfirmationInput = {
   totalDue: number;
   paymentStatus: string;
   eventId: string;
+  pdfAttachment?: { filename: string; content: string } | null;
+};
+
+type SendRegistrationApprovedInput = {
+  to: string;
+  eventName: string;
+  clubName: string;
+  eventStartsAt: Date;
+  eventEndsAt: Date;
+  locationName: string | null;
+  locationAddress: string | null;
+  registrationUrl: string;
+};
+
+type SendRevisionRequestedInput = {
+  to: string;
+  eventName: string;
+  clubName: string;
+  reason: string;
+  registrationUrl: string;
+};
+
+type SendClassAssignmentInput = {
+  to: string;
+  eventName: string;
+  clubName: string;
+  members: ClassAssignmentMember[];
+  classesUrl: string;
 };
 
 type SendRegistrationApprovedInput = {
@@ -158,18 +186,29 @@ export async function sendRegistrationConfirmationEmail(input: SendRegistrationC
     contactEmail,
   });
 
+  const body: Record<string, unknown> = {
+    from: config.from,
+    to: [input.to],
+    subject: `Registration confirmed: ${input.eventName}`,
+    html,
+  };
+
+  if (input.pdfAttachment) {
+    body.attachments = [
+      {
+        filename: input.pdfAttachment.filename,
+        content: input.pdfAttachment.content,
+      },
+    ];
+  }
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from: config.from,
-      to: [input.to],
-      subject: `Registration confirmed: ${input.eventName}`,
-      html,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
