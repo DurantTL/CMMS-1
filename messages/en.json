@@ -97,6 +97,10 @@
             "nominations": {
               "label": "Nominations",
               "description": "Awards review and winner selection queue."
+            },
+            "tlt": {
+              "label": "TLT Applications",
+              "description": "Review and approve Teen Leadership Training applications."
             }
           }
         },
@@ -202,6 +206,7 @@
       "reports": "Reports",
       "users": "Users",
       "nominations": "Nominations",
+      "tlt": "TLT Applications",
       "catalog": "Class Catalog",
       "compliance": "Compliance Sync",
       "storage": "Storage",
