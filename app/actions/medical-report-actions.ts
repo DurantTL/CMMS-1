@@ -16,7 +16,9 @@ export type MedicalManifestRow = {
   emergencyContactInfo: string;
   dietaryRestrictions: string | null;
   medicalFlags: string | null;
-  swimTestCleared: boolean;
+  photoReleaseConsentAt: Date | null;
+  medicalTreatmentConsentAt: Date | null;
+  membershipAgreementConsentAt: Date | null;
 };
 
 export type MedicalManifestData = {
@@ -150,6 +152,9 @@ export async function getMedicalManifest(eventId: string): Promise<MedicalManife
           swimTestCleared: true,
           emergencyContactName: true,
           emergencyContactPhone: true,
+          photoReleaseConsentAt: true,
+          medicalTreatmentConsentAt: true,
+          membershipAgreementConsentAt: true,
         },
       },
     },
@@ -189,7 +194,9 @@ export async function getMedicalManifest(eventId: string): Promise<MedicalManife
         ),
         dietaryRestrictions,
         medicalFlags,
-        swimTestCleared: attendee.rosterMember.swimTestCleared,
+        photoReleaseConsentAt: attendee.rosterMember.photoReleaseConsentAt,
+        medicalTreatmentConsentAt: attendee.rosterMember.medicalTreatmentConsentAt,
+        membershipAgreementConsentAt: attendee.rosterMember.membershipAgreementConsentAt,
       };
     })
     .filter((row): row is MedicalManifestRow => row !== null);

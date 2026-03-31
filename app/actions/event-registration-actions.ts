@@ -24,6 +24,7 @@ export type RegistrationActionState = {
   status: "idle" | "success" | "error";
   message: string | null;
   checkoutUrl?: string | null;
+  eligibilityWarnings?: string[];
 };
 
 type RegistrationPayload = {
@@ -183,7 +184,10 @@ async function getClubRegistrationContext(input: {
     where: {
       id: input.clubId,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
       rosterYears: {
         where: {
           isActive: true,
@@ -199,6 +203,8 @@ async function getClubRegistrationContext(input: {
               lastName: true,
               memberRole: true,
               backgroundCheckCleared: true,
+              ageAtStart: true,
+              dateOfBirth: true,
             },
           },
         },
@@ -231,6 +237,9 @@ async function getClubRegistrationContext(input: {
       lateFeeStartsAt: true,
       registrationOpensAt: true,
       registrationClosesAt: true,
+      minAttendeeAge: true,
+      maxAttendeeAge: true,
+      allowedClubTypes: true,
       dynamicFields: {
         select: {
           id: true,
@@ -259,6 +268,7 @@ async function getClubRegistrationContext(input: {
     event,
     clubId: membershipClub.id,
     clubName: membershipClub.name,
+    clubType: membershipClub.type,
     directorEmail: input.directorEmail,
     rosterMembers,
     validAttendeeIds,
@@ -294,6 +304,7 @@ export async function persistRegistrationForClub(input: {
 }) {
   const {
     event,
+    clubType,
     rosterMembers,
     validAttendeeIds,
     validFieldIds,
@@ -420,6 +431,50 @@ export async function persistRegistrationForClub(input: {
       );
     }
   }
+
+  // Eligibility warnings (non-blocking — surface to director but do not prevent submission)
+  const eligibilityWarnings: string[] = [];
+
+  if (event.allowedClubTypes.length > 0 && !event.allowedClubTypes.includes(clubType)) {
+    eligibilityWarnings.push(
+      `Your club type (${clubType}) is not in the list of allowed club types for this event (${event.allowedClubTypes.join(", ")}).`,
+    );
+  }
+
+  if (event.minAttendeeAge !== null || event.maxAttendeeAge !== null) {
+    const attendeeLookupForAge = new Map(rosterMembers.map((m) => [m.id, m]));
+
+    for (const attendeeId of attendeeIds) {
+      const member = attendeeLookupForAge.get(attendeeId);
+      if (!member) continue;
+
+      const age = member.ageAtStart ?? (() => {
+        if (!member.dateOfBirth) return null;
+        const now2 = new Date();
+        let calculated = now2.getFullYear() - member.dateOfBirth.getFullYear();
+        const monthDiff = now2.getMonth() - member.dateOfBirth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && now2.getDate() < member.dateOfBirth.getDate())) {
+          calculated -= 1;
+        }
+        return Math.max(calculated, 0);
+      })();
+
+      if (age === null) continue;
+
+      if (event.minAttendeeAge !== null && age < event.minAttendeeAge) {
+        eligibilityWarnings.push(
+          `${member.firstName} ${member.lastName} (age ${age}) is below the minimum age of ${event.minAttendeeAge} for this event.`,
+        );
+      }
+
+      if (event.maxAttendeeAge !== null && age > event.maxAttendeeAge) {
+        eligibilityWarnings.push(
+          `${member.firstName} ${member.lastName} (age ${age}) is above the maximum age of ${event.maxAttendeeAge} for this event.`,
+        );
+      }
+    }
+  }
+
   const now = input.now ?? new Date();
   const pricePerAttendee = now >= event.lateFeeStartsAt ? event.lateFeePrice : event.basePrice;
   const totalDue = attendeeIds.length * pricePerAttendee;
@@ -591,6 +646,7 @@ export async function persistRegistrationForClub(input: {
     totalDue,
     eventName: event.name,
     directorEmail: input.directorEmail,
+    eligibilityWarnings,
   };
 }
 
@@ -657,6 +713,7 @@ export async function submitEventRegistration(
           status: "success",
           message: result.emailWarning ?? "Registration submitted. Redirecting to payment...",
           checkoutUrl,
+          eligibilityWarnings: result.eligibilityWarnings,
         };
       } catch (squareError) {
         console.error("Square checkout link creation failed.", squareError);
@@ -665,6 +722,7 @@ export async function submitEventRegistration(
           message:
             result.emailWarning ??
             "Registration submitted. Visit your dashboard to complete payment.",
+          eligibilityWarnings: result.eligibilityWarnings,
         };
       }
     }
@@ -672,6 +730,7 @@ export async function submitEventRegistration(
     return {
       status: "success",
       message: result.emailWarning ?? "Registration submitted.",
+      eligibilityWarnings: result.eligibilityWarnings,
     };
   } catch (error) {
     return {
