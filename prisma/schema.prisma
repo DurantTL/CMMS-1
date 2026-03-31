@@ -37,6 +37,12 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  WALK_IN
+}
+
 enum RolloverStatus {
   CONTINUING
   ARCHIVED
@@ -282,7 +288,7 @@ model RosterMember {
   masterGuide                Boolean               @default(false)
   backgroundCheckDate        DateTime?
   backgroundCheckCleared     Boolean               @default(false)
-  swimTestCleared            Boolean               @default(false)
+  memberStatus               MemberStatus          @default(ACTIVE)
   rolloverStatus             RolloverStatus        @default(CONTINUING)
   isActive                   Boolean               @default(true)
   emergencyContactName       String?
