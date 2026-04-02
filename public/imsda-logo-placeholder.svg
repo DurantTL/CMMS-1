@@ -1,0 +1,19 @@
+<!--
+  IMSDA Logo Placeholder
+  Replace this file with the real IMSDA logo artwork.
+  Confirm final SVG/PNG with Caleb Durant before shipping.
+  Recommended: square SVG, ~48×48 viewBox, white artwork on transparent background
+  so it renders correctly inside the .admin-logo-mark gradient container.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none" aria-hidden="true">
+  <rect x="4" y="4" width="40" height="40" rx="10" stroke="white" stroke-width="2.5" stroke-opacity="0.7"/>
+  <text
+    x="24" y="30"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="13"
+    font-weight="700"
+    letter-spacing="1.5"
+    fill="white"
+  >CM</text>
+</svg>
