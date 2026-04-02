@@ -16,8 +16,8 @@
   --glass: rgba(255, 255, 255, 0.58);
   --glass-strong: rgba(255, 255, 255, 0.74);
   --glass-soft: rgba(244, 248, 255, 0.52);
-  --accent: #2f6df6;
-  --accent-strong: #1f56db;
+  --accent: #006EB5; /* IMSDA brand blue — confirm final value with Caleb Durant */
+  --accent-strong: #004F82; /* IMSDA brand blue deep — confirm final value with Caleb Durant */
   --accent-soft: rgba(57, 110, 255, 0.12);
   --success-soft: rgba(13, 148, 136, 0.14);
   --warning-soft: rgba(245, 158, 11, 0.14);
@@ -96,12 +96,18 @@ body {
   }
 
   .shell-header {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(244, 249, 255, 0.54));
+    background: rgba(255, 255, 255, 0.94);
     border: 1px solid rgba(255, 255, 255, 0.45);
     box-shadow: var(--shadow-soft);
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
     @apply sticky top-3 z-30 mx-auto mt-3 w-[calc(100%-1.5rem)] max-w-7xl rounded-[1.75rem];
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .shell-header {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(244, 249, 255, 0.54));
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
   }
 
   .shell-content {
@@ -122,10 +128,20 @@ body {
   .glass-table,
   .glass-modal {
     border: 1px solid var(--line);
-    background: linear-gradient(180deg, var(--glass-strong), var(--glass));
+    background: rgba(255, 255, 255, 0.94);
     box-shadow: var(--shadow-glass);
-    backdrop-filter: blur(22px);
-    -webkit-backdrop-filter: blur(22px);
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .glass-sidebar,
+    .glass-panel,
+    .glass-card,
+    .glass-table,
+    .glass-modal {
+      background: linear-gradient(180deg, var(--glass-strong), var(--glass));
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
   }
 
   .glass-sidebar {
@@ -244,11 +260,17 @@ body {
 
   .glass-card-soft {
     border: 1px solid rgba(160, 181, 217, 0.3);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(244, 248, 255, 0.5));
+    background: rgba(255, 255, 255, 0.94);
     box-shadow: var(--shadow-soft);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
     @apply rounded-[1.35rem] p-4;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .glass-card-soft {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(244, 248, 255, 0.5));
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
   }
 
   .glass-table {
@@ -486,10 +508,16 @@ body {
   .sticky-action-bar {
     @apply sticky bottom-4 z-20 rounded-[1.6rem];
     border: 1px solid rgba(150, 171, 208, 0.28);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(242, 247, 255, 0.72));
+    background: rgba(255, 255, 255, 0.94);
     box-shadow: var(--shadow-glass);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .sticky-action-bar {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(242, 247, 255, 0.72));
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
   }
 
   .nav-link {
@@ -514,6 +542,15 @@ body {
 
     .admin-context-sidebar-open {
       @apply translate-x-0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glass-panel,
+    .glass-sidebar,
+    .glass-card {
+      backdrop-filter: none;
+      transition: none;
     }
   }
 }

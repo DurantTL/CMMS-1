@@ -41,7 +41,21 @@ export function AdminShell({ children, currentLocale, user }: AdminShellProps) {
             </button>
 
             <Link href="/admin/dashboard" className="admin-logo-lockup">
-              <span className="admin-logo-mark">CM</span>
+              {/*
+                IMSDA Logo: drop the final artwork at /public/imsda-logo.svg
+                (confirm with Caleb Durant), then replace the src below with "/imsda-logo.svg".
+                The .admin-logo-mark container is 48×48 with the brand gradient background.
+              */}
+              <span className="admin-logo-mark">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/imsda-logo-placeholder.svg"
+                  alt=""
+                  width={28}
+                  height={28}
+                  aria-hidden="true"
+                />
+              </span>
               <span className="min-w-0">
                 <span className="block text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-blue-600">
                   {t("shell.brand.eyebrow")}
@@ -180,20 +194,6 @@ export function AdminShell({ children, currentLocale, user }: AdminShellProps) {
         ) : null}
 
         <div className="min-w-0 space-y-4">
-          <section className="glass-card-soft admin-workspace-strip">
-            <div>
-              <p className="hero-kicker">{t(shellState.activeSection.labelKey)}</p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-950">{t(shellState.sidebarHeadingKey)}</h2>
-              <p className="mt-1 text-sm text-slate-600">{t(shellState.sidebarDescriptionKey)}</p>
-            </div>
-            <div className="rounded-2xl bg-white/70 px-4 py-3 text-sm text-slate-700">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {t("shell.workspaceActive")}
-              </p>
-              <p className="mt-1 font-semibold text-slate-900">{t(shellState.activeSection.labelKey)}</p>
-            </div>
-          </section>
-
           <div className="admin-main-stage">{children}</div>
         </div>
       </div>
