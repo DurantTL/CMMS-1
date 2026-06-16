@@ -7,7 +7,7 @@
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --import tsx --test tests/*.test.ts tests/*.integration.test.ts",
+    "test": "node --import tsx --test --test-concurrency=1 tests/*.test.ts tests/*.integration.test.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build",
     "backfill:medical-encryption": "tsx prisma/backfill-medical-encryption.ts",
     "bootstrap:super-admin": "node scripts/bootstrap-super-admin.js",
