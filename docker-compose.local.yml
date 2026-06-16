@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# LOCAL TESTING ONLY — a disposable Postgres for the test suite + seed.
+#
+# This is intentionally SEPARATE from the production / XCloud stack in
+# `docker-compose.yml` (which builds the app image and points at cmms.imsda.org).
+# It does not replace or duplicate that file or the root `Dockerfile`.
+#
+# One command for a clean local DB:
+#     docker compose -f docker-compose.local.yml up -d
+# Then: npx prisma db push && npx prisma db seed && npm test
+# (matches DATABASE_URL in .env.example: postgres:postgres@localhost:5432/cmms)
+#
+# Credentials below are dev-only throwaways. Never use them anywhere real.
+# Tear down + wipe the disk: docker compose -f docker-compose.local.yml down -v
+# ---------------------------------------------------------------------------
+name: cmms-local
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: cmms-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cmms
+    ports:
+      - "5432:5432"
+    volumes:
+      - cmms_local_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cmms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: run the app in Docker too. This REUSES the existing root
+  # `Dockerfile` (no duplicate image definition). It is off by default — a plain
+  # `up` brings up only the database. Enable it with:
+  #     docker compose -f docker-compose.local.yml --profile app up --build
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cmms-local-web
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/cmms?schema=public"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cmms
+      NODE_ENV: production
+      AUTH_TRUST_HOST: "true"
+      NEXTAUTH_SECRET: "4xDm81d9Hz+kxtoXUhz9vtFmCW7UKGY8ZzdoB7MMZB0="
+      AUTH_SECRET: "4xDm81d9Hz+kxtoXUhz9vtFmCW7UKGY8ZzdoB7MMZB0="
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      MEDICAL_ENCRYPTION_KEY: "9dbd45c9aaa614275b35fe2aaf24bcabddf35a158569b4cabd07e8095a9189b2"
+    ports:
+      - "3000:3000"
+
+volumes:
+  cmms_local_pgdata:
