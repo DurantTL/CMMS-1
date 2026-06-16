@@ -1,19 +1,31 @@
 import {
   ClassType,
+  ClubType,
   EventMode,
   EventTemplateCategory,
   EventTemplateSource,
   FormFieldScope,
   FormFieldType,
+  Gender,
   MemberRole,
+  MemberStatus,
   PrismaClient,
   RequirementType,
+  RolloverStatus,
   UserRole,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { buildEventTemplateSnapshot } from "../lib/event-templates";
+import { prepareMedicalFieldsForWrite } from "../lib/medical-data";
 
 const prisma = new PrismaClient();
+
+const DEFAULT_CLUB_DIRECTOR_EMAIL =
+  process.env.SEED_CLUB_DIRECTOR_EMAIL ?? "director@cmms.local";
+const DEFAULT_CLUB_DIRECTOR_PASSWORD =
+  process.env.SEED_CLUB_DIRECTOR_PASSWORD ?? "DirectorPass123!";
+const DEFAULT_CLUB_DIRECTOR_NAME =
+  process.env.SEED_CLUB_DIRECTOR_NAME ?? "Dana Director";
 
 const DEFAULT_SUPER_ADMIN_EMAIL =
   process.env.SEED_SUPER_ADMIN_EMAIL ?? "superadmin@cmms.local";
@@ -1110,17 +1122,419 @@ async function seedOfficialEventTemplates(superAdminId: string) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Conference slice — a realistic set of clubs, roster years, and members built
+// ON TOP of the existing roster model (Club / ClubRosterYear / RosterMember).
+// Everything here is deterministic (seeded RNG) and idempotent: re-running after
+// a reset, or without one, produces the same state. Members for the seeded
+// roster years are cleared and rebuilt each run so counts never drift.
+// ---------------------------------------------------------------------------
+
+// Deterministic PRNG (LCG) so the seed is reproducible across runs.
+function makeRng(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function pick<T>(rng: () => number, values: readonly T[]): T {
+  return values[Math.floor(rng() * values.length)] as T;
+}
+
+function intBetween(rng: () => number, min: number, max: number) {
+  return min + Math.floor(rng() * (max - min + 1));
+}
+
+const FIRST_NAMES = [
+  "Avery", "Bella", "Caleb", "Dana", "Eli", "Faith", "Gabe", "Hannah", "Isaac",
+  "Jada", "Kyle", "Lena", "Micah", "Nora", "Owen", "Priya", "Quinn", "Ruth",
+  "Sam", "Tessa", "Uriah", "Vera", "Wyatt", "Ximena", "Yusuf", "Zoe", "Noah",
+  "Maya", "Liam", "Sofia", "Ethan", "Grace", "Logan", "Ivy", "Caleb", "Naomi",
+] as const;
+
+const LAST_NAMES = [
+  "Anderson", "Brooks", "Carter", "Diaz", "Edwards", "Foster", "Garcia",
+  "Hughes", "Ingram", "Jensen", "Kim", "Lopez", "Mensah", "Nguyen", "Owens",
+  "Patel", "Quinn", "Reyes", "Santos", "Turner", "Underwood", "Vega", "Walsh",
+  "Xiong", "Young", "Zimmerman",
+] as const;
+
+const MEDICAL_FLAG_SAMPLES = [
+  "Asthma — carries a rescue inhaler",
+  "Peanut allergy — EpiPen in club first-aid kit",
+  "Type 1 diabetes — insulin pump",
+  "Bee sting allergy — Benadryl on hand",
+  "ADHD — medication taken at home",
+] as const;
+
+const DIET_SAMPLES = [
+  "Vegetarian",
+  "Gluten-free",
+  "Lactose intolerant",
+  "No pork products",
+  "Tree-nut free",
+] as const;
+
+const INSURERS = [
+  "Blue Cross Blue Shield",
+  "Aetna",
+  "Kaiser Permanente",
+  "Cigna",
+  "UnitedHealthcare",
+] as const;
+
+const GENDERS = [Gender.MALE, Gender.FEMALE] as const;
+
+type ConferenceMemberSpec = {
+  firstName: string;
+  lastName: string;
+  memberRole: MemberRole;
+  gender: Gender;
+  ageAtStart: number;
+  dateOfBirth: Date;
+  memberStatus: MemberStatus;
+  isActive: boolean;
+  rolloverStatus: RolloverStatus;
+  medicalFlags: string | null;
+  dietaryRestrictions: string | null;
+  insuranceCompany: string | null;
+  insurancePolicyNumber: string | null;
+  lastTetanusDate: Date | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+};
+
+function ageRangeForRole(role: MemberRole): [number, number] {
+  switch (role) {
+    case MemberRole.DIRECTOR:
+      return [35, 55];
+    case MemberRole.STAFF:
+      return [28, 52];
+    case MemberRole.COUNSELOR:
+      return [22, 45];
+    case MemberRole.TLT:
+      return [15, 18];
+    case MemberRole.PATHFINDER:
+      return [10, 15];
+    case MemberRole.ADVENTURER:
+      return [6, 9];
+    case MemberRole.CHILD:
+      return [4, 9];
+    default:
+      return [10, 15];
+  }
+}
+
+function isAdultRole(role: MemberRole) {
+  return (
+    role === MemberRole.DIRECTOR ||
+    role === MemberRole.STAFF ||
+    role === MemberRole.COUNSELOR
+  );
+}
+
+// Build the role makeup for a club: a few adults, age-appropriate youth, and
+// (for Pathfinder/Adventurer clubs) the role-specific bands.
+function buildRolePlan(clubType: ClubType, count: number): MemberRole[] {
+  const roles: MemberRole[] = [
+    MemberRole.DIRECTOR,
+    MemberRole.STAFF,
+    MemberRole.STAFF,
+    MemberRole.COUNSELOR,
+    MemberRole.COUNSELOR,
+  ];
+
+  if (clubType === ClubType.ADVENTURER) {
+    roles.push(MemberRole.CHILD, MemberRole.CHILD, MemberRole.CHILD);
+  } else {
+    roles.push(MemberRole.TLT, MemberRole.TLT, MemberRole.TLT);
+  }
+
+  const youthRole =
+    clubType === ClubType.ADVENTURER ? MemberRole.ADVENTURER : MemberRole.PATHFINDER;
+
+  while (roles.length < count) {
+    roles.push(youthRole);
+  }
+
+  return roles.slice(0, count);
+}
+
+function generateMembers(
+  seed: number,
+  clubType: ClubType,
+  count: number,
+  startYear: number,
+): ConferenceMemberSpec[] {
+  const rng = makeRng(seed);
+  const roles = buildRolePlan(clubType, count);
+
+  return roles.map((role, index) => {
+    const [minAge, maxAge] = ageRangeForRole(role);
+    const ageAtStart = intBetween(rng, minAge, maxAge);
+    const birthYear = startYear - ageAtStart;
+    const dateOfBirth = new Date(
+      Date.UTC(birthYear, intBetween(rng, 0, 11), intBetween(rng, 1, 28)),
+    );
+
+    // Status mix gives rollover real signal: most members are ACTIVE (copy
+    // forward), some INACTIVE (excluded), some WALK_IN (excluded). Adults stay
+    // active so the leadership team always carries over.
+    const roll = rng();
+    let memberStatus: MemberStatus;
+    let isActive: boolean;
+    let rolloverStatus: RolloverStatus;
+
+    if (isAdultRole(role) || roll < 0.7) {
+      memberStatus = MemberStatus.ACTIVE;
+      isActive = true;
+      rolloverStatus = RolloverStatus.CONTINUING;
+    } else if (roll < 0.85) {
+      memberStatus = MemberStatus.INACTIVE;
+      isActive = false;
+      rolloverStatus = RolloverStatus.ARCHIVED;
+    } else {
+      memberStatus = MemberStatus.WALK_IN;
+      isActive = true;
+      rolloverStatus = RolloverStatus.NEW;
+    }
+
+    const firstName = pick(rng, FIRST_NAMES);
+    const lastName = pick(rng, LAST_NAMES);
+
+    // Populate medical/PII + emergency details on a recurring subset so the
+    // medical-facing screens render real (encrypted) data. These plaintext
+    // values are encrypted at write time via prepareMedicalFieldsForWrite.
+    const withMedical = isActive && index % 4 === 0;
+    const withEmergency = isActive;
+
+    return {
+      firstName,
+      lastName,
+      memberRole: role,
+      gender: pick(rng, GENDERS),
+      ageAtStart,
+      dateOfBirth,
+      memberStatus,
+      isActive,
+      rolloverStatus,
+      medicalFlags: withMedical ? pick(rng, MEDICAL_FLAG_SAMPLES) : null,
+      dietaryRestrictions: withMedical ? pick(rng, DIET_SAMPLES) : null,
+      insuranceCompany: withMedical ? pick(rng, INSURERS) : null,
+      insurancePolicyNumber: withMedical
+        ? `POL-${intBetween(rng, 100000, 999999)}`
+        : null,
+      lastTetanusDate: withMedical
+        ? new Date(Date.UTC(startYear - intBetween(rng, 0, 5), intBetween(rng, 0, 11), intBetween(rng, 1, 28)))
+        : null,
+      emergencyContactName: withEmergency ? `${pick(rng, FIRST_NAMES)} ${lastName}` : null,
+      emergencyContactPhone: withEmergency
+        ? `555-${intBetween(rng, 200, 999)}-${intBetween(rng, 1000, 9999)}`
+        : null,
+    } satisfies ConferenceMemberSpec;
+  });
+}
+
+async function upsertClubRosterYear(
+  clubId: string,
+  yearLabel: string,
+  isActive: boolean,
+  copiedFromYearId: string | null,
+) {
+  const year = Number(yearLabel);
+  const startsOn = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+  const endsOn = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+
+  return prisma.clubRosterYear.upsert({
+    where: { clubId_yearLabel: { clubId, yearLabel } },
+    update: { startsOn, endsOn, isActive, copiedFromYearId },
+    create: { clubId, yearLabel, startsOn, endsOn, isActive, copiedFromYearId },
+  });
+}
+
+// Rebuild every member in a roster year (idempotent). Writes medical/PII through
+// prepareMedicalFieldsForWrite so they land encrypted.
+async function rebuildRosterYearMembers(
+  clubRosterYearId: string,
+  specs: ConferenceMemberSpec[],
+) {
+  await prisma.rosterMember.deleteMany({ where: { clubRosterYearId } });
+
+  const consentVersion = process.env.CONSENT_DOCUMENT_VERSION ?? null;
+  const now = new Date();
+
+  const data = specs.map((spec) => {
+    const medical = prepareMedicalFieldsForWrite({
+      medicalFlags: spec.medicalFlags,
+      dietaryRestrictions: spec.dietaryRestrictions,
+      insuranceCompany: spec.insuranceCompany,
+      insurancePolicyNumber: spec.insurancePolicyNumber,
+      lastTetanusDate: spec.lastTetanusDate,
+    });
+
+    const consentGiven = spec.isActive;
+
+    return {
+      clubRosterYearId,
+      firstName: spec.firstName,
+      lastName: spec.lastName,
+      memberRole: spec.memberRole,
+      gender: spec.gender,
+      ageAtStart: spec.ageAtStart,
+      dateOfBirth: spec.dateOfBirth,
+      memberStatus: spec.memberStatus,
+      isActive: spec.isActive,
+      rolloverStatus: spec.rolloverStatus,
+      emergencyContactName: spec.emergencyContactName,
+      emergencyContactPhone: spec.emergencyContactPhone,
+      medicalFlags: medical.medicalFlags,
+      dietaryRestrictions: medical.dietaryRestrictions,
+      insuranceCompany: medical.insuranceCompany,
+      insurancePolicyNumber: medical.insurancePolicyNumber,
+      lastTetanusDate: medical.lastTetanusDate,
+      lastTetanusDateEncrypted: medical.lastTetanusDateEncrypted,
+      isMedicalPersonnel: spec.memberRole === MemberRole.STAFF && spec.medicalFlags !== null,
+      masterGuide: spec.memberRole === MemberRole.DIRECTOR,
+      swimTestCleared: spec.isActive && spec.memberRole !== MemberRole.CHILD,
+      backgroundCheckCleared: isAdultRole(spec.memberRole) && spec.isActive,
+      backgroundCheckDate:
+        isAdultRole(spec.memberRole) && spec.isActive
+          ? new Date(Date.UTC(spec.dateOfBirth.getUTCFullYear() + spec.ageAtStart, 0, 15))
+          : null,
+      photoReleaseConsent: consentGiven,
+      medicalTreatmentConsent: consentGiven,
+      membershipAgreementConsent: consentGiven,
+      photoReleaseConsentAt: consentGiven ? now : null,
+      medicalTreatmentConsentAt: consentGiven ? now : null,
+      membershipAgreementConsentAt: consentGiven ? now : null,
+      consentVersion: consentGiven ? consentVersion : null,
+    };
+  });
+
+  await prisma.rosterMember.createMany({ data });
+
+  return data.length;
+}
+
+type ConferenceClubResult = {
+  name: string;
+  code: string;
+  type: ClubType;
+  activeMemberCount: number;
+  priorMemberCount: number | null;
+};
+
+async function seedConferenceSlice(): Promise<{
+  clubs: ConferenceClubResult[];
+  director: { email: string; password: string; clubName: string };
+}> {
+  const currentYear = new Date().getUTCFullYear();
+  const activeYearLabel = `${currentYear}`;
+  const priorYearLabel = `${currentYear - 1}`;
+
+  // The first club carries two roster years so rollover lineage is testable:
+  // a prior (inactive) year and the active year that records it via
+  // copiedFromYearId. The seeded CLUB_DIRECTOR is linked to this club.
+  const clubDefs = [
+    { code: "NGP", name: "Northgate Pathfinders", type: ClubType.PATHFINDER, city: "Northgate", state: "OR", count: 22, twoYears: true, seed: 1001 },
+    { code: "RVP", name: "Riverside Pathfinders", type: ClubType.PATHFINDER, city: "Riverside", state: "CA", count: 18, twoYears: false, seed: 2002 },
+    { code: "SVA", name: "Sunnyvale Adventurers", type: ClubType.ADVENTURER, city: "Sunnyvale", state: "CA", count: 16, twoYears: false, seed: 3003 },
+    { code: "LSA", name: "Lakeshore Adventurers", type: ClubType.ADVENTURER, city: "Lakeshore", state: "MI", count: 20, twoYears: false, seed: 4004 },
+  ] as const;
+
+  const results: ConferenceClubResult[] = [];
+  let directorClubName = "";
+
+  for (const def of clubDefs) {
+    const club = await prisma.club.upsert({
+      where: { code: def.code },
+      update: { name: def.name, type: def.type, city: def.city, state: def.state, district: "Central District" },
+      create: { code: def.code, name: def.name, type: def.type, city: def.city, state: def.state, district: "Central District" },
+    });
+
+    let priorMemberCount: number | null = null;
+    let copiedFromYearId: string | null = null;
+
+    if (def.twoYears) {
+      const priorYear = await upsertClubRosterYear(club.id, priorYearLabel, false, null);
+      const priorSpecs = generateMembers(def.seed + 1, def.type, def.count, currentYear - 1);
+      priorMemberCount = await rebuildRosterYearMembers(priorYear.id, priorSpecs);
+      copiedFromYearId = priorYear.id;
+      directorClubName = def.name;
+    }
+
+    const activeYear = await upsertClubRosterYear(club.id, activeYearLabel, true, copiedFromYearId);
+    const activeSpecs = generateMembers(def.seed, def.type, def.count, currentYear);
+    const activeMemberCount = await rebuildRosterYearMembers(activeYear.id, activeSpecs);
+
+    results.push({
+      name: def.name,
+      code: def.code,
+      type: def.type,
+      activeMemberCount,
+      priorMemberCount,
+    });
+  }
+
+  // Club Director linked to the first (two-year) club so the director surface
+  // renders against a real, active roster.
+  const directorClub = await prisma.club.findUniqueOrThrow({ where: { code: "NGP" } });
+  const passwordHash = await bcrypt.hash(DEFAULT_CLUB_DIRECTOR_PASSWORD, 12);
+
+  const director = await prisma.user.upsert({
+    where: { email: DEFAULT_CLUB_DIRECTOR_EMAIL },
+    update: { name: DEFAULT_CLUB_DIRECTOR_NAME, role: UserRole.CLUB_DIRECTOR, passwordHash },
+    create: {
+      email: DEFAULT_CLUB_DIRECTOR_EMAIL,
+      name: DEFAULT_CLUB_DIRECTOR_NAME,
+      role: UserRole.CLUB_DIRECTOR,
+      passwordHash,
+    },
+  });
+
+  await prisma.clubMembership.upsert({
+    where: { clubId_userId: { clubId: directorClub.id, userId: director.id } },
+    update: { isPrimary: true, title: "Club Director" },
+    create: { clubId: directorClub.id, userId: director.id, isPrimary: true, title: "Club Director" },
+  });
+
+  return {
+    clubs: results,
+    director: {
+      email: DEFAULT_CLUB_DIRECTOR_EMAIL,
+      password: DEFAULT_CLUB_DIRECTOR_PASSWORD,
+      clubName: directorClubName,
+    },
+  };
+}
+
 async function main() {
   const superAdmin = await seedSuperAdmin();
   const club = await seedDefaultClub();
   await seedHonors();
   await seedOfficialEventTemplates(superAdmin.id);
+  const conference = await seedConferenceSlice();
 
   console.log("Seed complete:");
-  console.log(`- Super Admin: ${superAdmin.email}`);
-  console.log(`- Club: ${club.name} (${club.code})`);
+  console.log(`- Super Admin: ${superAdmin.email} / ${DEFAULT_SUPER_ADMIN_PASSWORD}`);
+  console.log(
+    `- Club Director: ${conference.director.email} / ${conference.director.password} (club: ${conference.director.clubName})`,
+  );
+  console.log(`- Default club: ${club.name} (${club.code})`);
   console.log(`- Honors seeded: ${DEFAULT_HONORS.length}`);
   console.log(`- Official event templates seeded: ${OFFICIAL_EVENT_TEMPLATES.length}`);
+  console.log("- Conference clubs:");
+  for (const result of conference.clubs) {
+    const lineage =
+      result.priorMemberCount !== null
+        ? `, prior-year ${result.priorMemberCount} (rollover lineage)`
+        : "";
+    console.log(
+      `  • ${result.name} (${result.code}, ${result.type}): ${result.activeMemberCount} active-year members${lineage}`,
+    );
+  }
 }
 
 main()
