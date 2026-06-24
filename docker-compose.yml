@@ -40,6 +40,7 @@ services:
       AUTH_TRUST_HOST: "true"
       RESEND_API_KEY: ${RESEND_API_KEY}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
+      MEDICAL_ENCRYPTION_KEY: ${MEDICAL_ENCRYPTION_KEY}
     ports:
       - "3000:3000"
     volumes:
