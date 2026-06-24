@@ -25,22 +25,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Secrets are sourced from a `.env` file sitting next to this compose file on
+    # the host (NOT committed). At minimum it MUST define:
+    #   MEDICAL_ENCRYPTION_KEY   (required — roster medical writes/seed throw without it)
+    #   NEXTAUTH_SECRET          (required for auth; same value as AUTH_SECRET)
+    #   NEXTAUTH_URL             (e.g. https://cmms.internal.imsda.org)
+    #   RESEND_API_KEY, RESEND_FROM_EMAIL  (optional — email is a no-op without them)
+    # Do NOT also list these under `environment:` below — an `environment:` entry
+    # overrides `env_file`, and an unset `${VAR}` would blank them back out.
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://cmms_app:cmms_app_test_2026@postgres:5432/cmms?schema=public
       POSTGRES_USER: cmms_app
       POSTGRES_PASSWORD: cmms_app_test_2026
       POSTGRES_DB: cmms
       NODE_ENV: production
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
-      NEXT_PUBLIC_APP_URL: https://cmms.imsda.org
+      NEXT_PUBLIC_APP_URL: https://cmms.internal.imsda.org
       SEED_SUPER_ADMIN_EMAIL: ${SEED_SUPER_ADMIN_EMAIL:-superadmin@cmms.local}
       SEED_SUPER_ADMIN_PASSWORD: ${SEED_SUPER_ADMIN_PASSWORD:-ChangeMeNow123!}
       SEED_SUPER_ADMIN_NAME: ${SEED_SUPER_ADMIN_NAME:-CMMS Super Admin}
       AUTH_TRUST_HOST: "true"
-      RESEND_API_KEY: ${RESEND_API_KEY}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
-      MEDICAL_ENCRYPTION_KEY: ${MEDICAL_ENCRYPTION_KEY}
     ports:
       - "3000:3000"
     volumes:
