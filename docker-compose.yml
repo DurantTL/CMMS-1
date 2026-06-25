@@ -64,6 +64,11 @@ services:
       - "3000:3000"
     volumes:
       - ./private-uploads:/app/private-uploads
+      # Shared control channel for the in-app "Update CMMS" button. The container
+      # only writes update-request files / reads status.json here; the host-side
+      # updater agent (scripts/host-updater.sh) does the actual git pull + rebuild.
+      # See XCLOUD-DEPLOYMENT.md "One-click update button".
+      - ./deploy-control:/app/deploy-control
 
 volumes:
   postgres_data:

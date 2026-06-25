@@ -7,3 +7,7 @@ tsconfig.tsbuildinfo
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Runtime state for the in-app update button (see deploy-control/.gitkeep)
+/deploy-control/*
+!/deploy-control/.gitkeep

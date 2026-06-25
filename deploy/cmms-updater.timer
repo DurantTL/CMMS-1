@@ -1,0 +1,19 @@
+# Polls for in-app update requests every ~45 seconds.
+#
+# Install alongside cmms-updater.service (see that file's header), then:
+#   sudo systemctl enable --now cmms-updater.timer
+#
+# Latency between clicking the button and the rebuild starting is at most one
+# tick (~45s). Adjust OnUnitActiveSec to taste.
+
+[Unit]
+Description=Run the CMMS host-side updater periodically
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=45
+AccuracySec=10
+Unit=cmms-updater.service
+
+[Install]
+WantedBy=timers.target

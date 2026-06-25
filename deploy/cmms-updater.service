@@ -1,0 +1,47 @@
+# CMMS host-side updater agent (oneshot).
+#
+# Performs the privileged half of the in-app "Update CMMS" button: when the
+# webapp drops an update request into deploy-control/requests/, this service
+# runs `git pull && docker compose up -d --build`.
+#
+# Install:
+#   sudo cp deploy/cmms-updater.service /etc/systemd/system/
+#   sudo cp deploy/cmms-updater.timer   /etc/systemd/system/
+#   # Edit the paths/user below to match your host, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cmms-updater.timer
+#
+# See XCLOUD-DEPLOYMENT.md "One-click update button" for the full guide.
+
+[Unit]
+Description=CMMS host-side updater (git pull + docker compose rebuild)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# --- EDIT THESE FOR YOUR HOST ---
+# The user must be able to run git pull and `docker compose` for this project.
+User=deploy
+# Absolute path to the cloned repo (the docker compose project root).
+WorkingDirectory=/opt/cmms
+Environment=REPO_DIR=/opt/cmms
+Environment=DEPLOY_CONTROL_DIR=/opt/cmms/deploy-control
+# NOTE: the value MUST be quoted as a whole. Without the quotes, systemd parses
+# `COMPOSE_CMD=docker compose` as a space-separated list and drops `compose`,
+# leaving COMPOSE_CMD=docker (verify with `systemd-analyze verify`).
+Environment="COMPOSE_CMD=docker compose"
+# Optionally pin the branch (defaults to the repo's current branch):
+# Environment=GIT_BRANCH=main
+# --------------------------------
+
+# Self-heal ownership of the shared control dir before each run. The web
+# container runs as root, so request files it drops are root-owned; without this
+# the agent (User=deploy) could read but not delete them, reprocessing the same
+# request every tick. The `+` prefix runs these as root regardless of User=.
+# Keep the path/user in sync with the values above.
+ExecStartPre=+/bin/mkdir -p /opt/cmms/deploy-control/requests /opt/cmms/deploy-control/logs
+ExecStartPre=+/bin/chown -R deploy:deploy /opt/cmms/deploy-control
+
+ExecStart=/opt/cmms/scripts/host-updater.sh once

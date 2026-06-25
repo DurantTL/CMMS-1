@@ -1,0 +1,12 @@
+# This directory is the shared control channel between the CMMS web container
+# and the host-side updater agent (scripts/host-updater.sh).
+#
+# At runtime it holds:
+#   requests/<uuid>.json  - update requests written by the webapp (SUPER_ADMIN button)
+#   status.json           - current/remote commit + last result, written by the host agent
+#   logs/<uuid>.log       - per-update output captured by the host agent
+#   *.lock                - flock guard
+#
+# All of the above is runtime state and is gitignored (see .gitignore). This
+# .gitkeep keeps the empty directory in the repo so the docker-compose bind mount
+# (./deploy-control:/app/deploy-control) has something to mount on a fresh clone.

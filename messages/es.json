@@ -147,6 +147,10 @@
             "storage": {
               "label": "Almacenamiento",
               "description": "Uso de cargas privadas y herramientas de limpieza."
+            },
+            "system": {
+              "label": "Actualización del sistema",
+              "description": "Obtén el código más reciente y reconstruye sin SSH."
             }
           }
         },
