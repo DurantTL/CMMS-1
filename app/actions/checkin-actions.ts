@@ -1,8 +1,9 @@
 "use server";
 
 import { FormFieldScope, RegistrationStatus } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 import { type Session } from "next-auth";
+
+import { safeRevalidatePath } from "../../lib/revalidate";
 
 import { auth } from "../../auth";
 import { getMissingRequiredFieldLabels } from "../../lib/event-form-completeness";
@@ -139,8 +140,8 @@ export async function markRegistrationCheckedIn(formData: FormData) {
 
   await approveRegistrationForCheckIn(eventId, registrationId);
 
-  revalidatePath(`/admin/events/${eventId}`);
-  revalidatePath(`/admin/events/${eventId}/checkin`);
+  safeRevalidatePath(`/admin/events/${eventId}`);
+  safeRevalidatePath(`/admin/events/${eventId}/checkin`);
 }
 
 export async function approveRegistrationForCheckIn(eventId: string, registrationId: string) {
@@ -251,8 +252,8 @@ export async function checkInAttendee(formData: FormData) {
     },
   });
 
-  revalidatePath(`/admin/events/${eventId}`);
-  revalidatePath(`/admin/events/${eventId}/checkin`);
+  safeRevalidatePath(`/admin/events/${eventId}`);
+  safeRevalidatePath(`/admin/events/${eventId}/checkin`);
 }
 
 export async function checkInAttendeeByRosterMemberId(eventId: string, rosterMemberId: string) {
@@ -273,6 +274,6 @@ export async function checkInAttendeeByRosterMemberId(eventId: string, rosterMem
     },
   });
 
-  revalidatePath(`/admin/events/${eventId}`);
-  revalidatePath(`/admin/events/${eventId}/checkin`);
+  safeRevalidatePath(`/admin/events/${eventId}`);
+  safeRevalidatePath(`/admin/events/${eventId}/checkin`);
 }

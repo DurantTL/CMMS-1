@@ -1,7 +1,8 @@
 "use server";
 
 import { Prisma, type MemberRole } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+
+import { safeRevalidatePath } from "../../lib/revalidate";
 
 import {
   findEventEnrollmentConflict,
@@ -298,8 +299,8 @@ async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubI
     });
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
-  revalidatePath(`/admin/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 }
 
 export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
@@ -368,7 +369,7 @@ async function removeAttendeeFromClassForClub(input: EnrollAttendeeInput & { clu
     });
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
 }
 
 export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
@@ -570,8 +571,8 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
     }
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
-  revalidatePath(`/admin/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 
   await safeWriteAuditLog({
     actorUserId: managedClub.userId,
@@ -723,8 +724,8 @@ export async function bulkRemoveAttendeesFromClass(input: BulkEnrollAttendeesInp
     });
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
-  revalidatePath(`/admin/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 
   await safeWriteAuditLog({
     actorUserId: managedClub.userId,

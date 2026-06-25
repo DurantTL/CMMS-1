@@ -1,9 +1,8 @@
 "use server";
 
 import { Prisma, UserRole, type MemberRole, type RequirementType } from "@prisma/client";
-import { revalidatePath } from "next/cache";
-
 import { auth } from "../../auth";
+import { safeRevalidatePath } from "../../lib/revalidate";
 import { enrollAttendeeInClass, removeAttendeeFromClass } from "./enrollment-actions";
 import {
   evaluateClassRequirements,
@@ -172,8 +171,8 @@ export async function saveRankedClassPreferences(formData: FormData) {
     }
   });
 
-  revalidatePath(`/director/events/${eventId}/classes`);
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/director/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 export type BatchPreferenceItem = {
@@ -280,8 +279,8 @@ export async function saveAllClassPreferences(input: {
     }
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
-  revalidatePath(`/admin/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 }
 
 async function ensureSuperAdmin() {
@@ -455,7 +454,7 @@ export async function addAttendeeToClassWaitlist(formData: FormData) {
     });
   });
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 export async function removeAttendeeFromClassWaitlist(formData: FormData) {
@@ -484,7 +483,7 @@ export async function removeAttendeeFromClassWaitlist(formData: FormData) {
     },
   });
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 async function getSuggestedOfferingForAttendee(input: {
@@ -800,7 +799,7 @@ export async function assignAttendeeToTimeslotOffering(formData: FormData) {
     autoPromoteSourceWaitlist,
   });
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 export async function assignSuggestedTimeslotOffering(formData: FormData) {
@@ -830,7 +829,7 @@ export async function assignSuggestedTimeslotOffering(formData: FormData) {
     nextOfferingId: suggestion.eventClassOfferingId,
   });
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 export async function bulkAssignSuggestedTimeslotOfferings(formData: FormData) {
@@ -862,7 +861,7 @@ export async function bulkAssignSuggestedTimeslotOfferings(formData: FormData) {
     });
   }
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 export async function bulkClearTimeslotPlacements(formData: FormData) {
@@ -885,7 +884,7 @@ export async function bulkClearTimeslotPlacements(formData: FormData) {
     });
   }
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 export async function bulkReassignTimeslotOfferings(formData: FormData) {
@@ -909,7 +908,7 @@ export async function bulkReassignTimeslotOfferings(formData: FormData) {
     });
   }
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
 
 export async function promoteClassWaitlistEntries(formData: FormData) {
@@ -929,5 +928,5 @@ export async function promoteClassWaitlistEntries(formData: FormData) {
     fillOpenSeats,
   });
 
-  revalidatePath(`/admin/events/${eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${eventId}/classes`);
 }
