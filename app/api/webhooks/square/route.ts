@@ -1,4 +1,3 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { PaymentStatus } from "@prisma/client";
@@ -6,6 +5,7 @@ import { PaymentStatus } from "@prisma/client";
 import { sendRegistrationReceiptEmail } from "../../../../lib/email/resend";
 import { verifySquareWebhookSignature } from "../../../../lib/payments/square";
 import { prisma } from "../../../../lib/prisma";
+import { safeRevalidatePath } from "../../../../lib/revalidate";
 
 export const runtime = "nodejs";
 
@@ -147,8 +147,8 @@ export async function POST(request: Request) {
     },
   });
 
-  revalidatePath("/director/events");
-  revalidatePath("/admin/events");
+  safeRevalidatePath("/director/events");
+  safeRevalidatePath("/admin/events");
 
   // Send registration confirmation email to the club's primary director.
   const directorEmail = registration.club.memberships[0]?.user.email ?? null;
