@@ -28,9 +28,20 @@ User=deploy
 WorkingDirectory=/opt/cmms
 Environment=REPO_DIR=/opt/cmms
 Environment=DEPLOY_CONTROL_DIR=/opt/cmms/deploy-control
-Environment=COMPOSE_CMD=docker compose
+# NOTE: the value MUST be quoted as a whole. Without the quotes, systemd parses
+# `COMPOSE_CMD=docker compose` as a space-separated list and drops `compose`,
+# leaving COMPOSE_CMD=docker (verify with `systemd-analyze verify`).
+Environment="COMPOSE_CMD=docker compose"
 # Optionally pin the branch (defaults to the repo's current branch):
 # Environment=GIT_BRANCH=main
 # --------------------------------
+
+# Self-heal ownership of the shared control dir before each run. The web
+# container runs as root, so request files it drops are root-owned; without this
+# the agent (User=deploy) could read but not delete them, reprocessing the same
+# request every tick. The `+` prefix runs these as root regardless of User=.
+# Keep the path/user in sync with the values above.
+ExecStartPre=+/bin/mkdir -p /opt/cmms/deploy-control/requests /opt/cmms/deploy-control/logs
+ExecStartPre=+/bin/chown -R deploy:deploy /opt/cmms/deploy-control
 
 ExecStart=/opt/cmms/scripts/host-updater.sh once

@@ -184,6 +184,15 @@ deploy key or a cached credential helper for the remote) and run
 `docker compose`. The `./deploy-control` volume mount is already wired in
 `docker-compose.yml`.
 
+**Ownership of `deploy-control/`:** the web container runs as root, so request
+files it drops are root-owned. The agent runs as your `deploy` user and must be
+able to delete them. The unit handles this automatically — it runs
+`mkdir -p`/`chown -R <user> deploy-control` as root (`ExecStartPre=+…`) before
+each tick, so ownership self-heals. If you change the unit's `User=`, update the
+`chown` target in the two `ExecStartPre` lines to match. For belt-and-suspenders
+you can also pre-create it once: `mkdir -p deploy-control/{requests,logs} &&
+sudo chown -R deploy:deploy deploy-control`.
+
 You can dry-run the agent without pulling or rebuilding:
 
 ```bash
