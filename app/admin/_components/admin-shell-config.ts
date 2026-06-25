@@ -150,6 +150,11 @@ const SECTION_SIDEBARS: Record<AdminTopSectionId, { headingKey: string; descript
         labelKey: "shell.sidebar.admin.items.storage.label",
         descriptionKey: "shell.sidebar.admin.items.storage.description",
       },
+      {
+        href: "/admin/system",
+        labelKey: "shell.sidebar.admin.items.system.label",
+        descriptionKey: "shell.sidebar.admin.items.system.description",
+      },
     ],
   },
 };
@@ -230,7 +235,7 @@ function resolveTopSection(pathname: string): AdminTopSection {
     return ADMIN_TOP_SECTIONS.find((section) => section.id === "reports") ?? ADMIN_TOP_SECTIONS[0];
   }
 
-  if (pathname.startsWith("/admin/compliance") || pathname.startsWith("/admin/audit") || pathname.startsWith("/admin/storage")) {
+  if (pathname.startsWith("/admin/compliance") || pathname.startsWith("/admin/audit") || pathname.startsWith("/admin/storage") || pathname.startsWith("/admin/system")) {
     return ADMIN_TOP_SECTIONS.find((section) => section.id === "admin") ?? ADMIN_TOP_SECTIONS[0];
   }
 

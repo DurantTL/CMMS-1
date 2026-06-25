@@ -138,6 +138,58 @@ git pull
 docker compose up -d --build
 ```
 
+### One-click update button (optional)
+
+The admin UI has an **Admin → System Update** page (`/admin/system`, SUPER_ADMIN
+only) with an "Update CMMS now" button that runs the same `git pull` + rebuild as
+above — no SSH required.
+
+**How it works (and why it needs host-side setup):** the running app is an
+immutable Docker image — it has no `.git`, no source tree, and no build
+toolchain, so it *cannot* update itself. Instead the button only writes a small
+request file into a shared volume (`./deploy-control`). A privileged **host-side
+agent** (`scripts/host-updater.sh`, run by a systemd timer) sees the request and
+runs `git pull && docker compose up -d --build` on the host. Git and Docker
+never enter the container; the agent runs fixed commands and never executes the
+contents of request files.
+
+> ⚠️ **The button does nothing until the host agent is installed.** Without it,
+> clicks are recorded (and audited) but no update happens, and the page shows
+> "No deployment status is available yet."
+
+The rebuild **restarts the app**, briefly disconnecting signed-in users. The
+page reports "update started" — it cannot report completion live, because it
+restarts. Reload after ~1 minute to confirm the running commit changed.
+
+**Install the host agent (one time):**
+
+```bash
+# From the repo root on the host:
+chmod +x scripts/host-updater.sh
+
+# Copy and edit the unit files (set User=, WorkingDirectory=, REPO_DIR= to match
+# your host — the defaults assume /opt/cmms and a `deploy` user):
+sudo cp deploy/cmms-updater.service /etc/systemd/system/
+sudo cp deploy/cmms-updater.timer   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now cmms-updater.timer
+
+# Verify it ticks and writes deploy-control/status.json:
+systemctl list-timers cmms-updater.timer
+cat deploy-control/status.json
+```
+
+The agent user must be able to `git pull` non-interactively (configure an SSH
+deploy key or a cached credential helper for the remote) and run
+`docker compose`. The `./deploy-control` volume mount is already wired in
+`docker-compose.yml`.
+
+You can dry-run the agent without pulling or rebuilding:
+
+```bash
+DRY_RUN=1 scripts/host-updater.sh once   # echoes the git/compose commands
+```
+
 ### Run one-off Prisma migration command manually (if needed)
 
 ```bash

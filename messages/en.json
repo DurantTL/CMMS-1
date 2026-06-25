@@ -151,6 +151,10 @@
             "storage": {
               "label": "Storage",
               "description": "Private upload usage and purge tooling."
+            },
+            "system": {
+              "label": "System Update",
+              "description": "Pull the latest code and rebuild without SSH."
             }
           }
         },
