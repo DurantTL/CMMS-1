@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { ClassType, MemberRole } from "@prisma/client";
 
-import { bulkEnrollAttendeesInClass } from "../app/actions/enrollment-actions";
+import { bulkEnrollAttendeesForClub } from "../app/actions/enrollment-actions";
 import { prisma } from "../lib/prisma";
 import {
   disconnectIntegrationPrisma,
@@ -142,7 +142,7 @@ test("bulk enrollment respects one-class-per-event and capacity rules", { skip: 
 
   await assert.rejects(
     () =>
-      bulkEnrollAttendeesInClass({
+      bulkEnrollAttendeesForClub({
         eventId: event.id,
         eventClassOfferingId: offeringA.id,
         rosterMemberIds: [alice.id, brian.id],
@@ -151,7 +151,7 @@ test("bulk enrollment respects one-class-per-event and capacity rules", { skip: 
     /Bulk enrollment blocked/,
   );
 
-  await bulkEnrollAttendeesInClass({
+  await bulkEnrollAttendeesForClub({
     eventId: event.id,
     eventClassOfferingId: offeringA.id,
     rosterMemberIds: [alice.id, cara.id],

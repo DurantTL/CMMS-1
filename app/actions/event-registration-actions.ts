@@ -1,9 +1,8 @@
 "use server";
 
 import { FormFieldScope, MemberRole, MemberStatus, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
-
 import { getManagedClubContext } from "../../lib/club-management";
+import { safeRevalidatePath } from "../../lib/revalidate";
 import { sendRegistrationConfirmationEmail } from "../../lib/email/resend";
 import { getEventRegistrationExportDataById } from "../../lib/data/event-registration-export";
 import { createElement } from "react";
@@ -570,9 +569,9 @@ export async function persistRegistrationForClub(input: {
     }
   });
 
-  revalidatePath(`/director/events/${input.eventId}`);
-  revalidatePath("/director/dashboard");
-  revalidatePath("/director/events");
+  safeRevalidatePath(`/director/events/${input.eventId}`);
+  safeRevalidatePath("/director/dashboard");
+  safeRevalidatePath("/director/events");
 
   if (input.nextStatus === RegistrationStatus.SUBMITTED) {
     const directorMembership = await prisma.clubMembership.findFirst({
@@ -833,7 +832,7 @@ export async function createWalkInAttendee(
       },
     });
 
-    revalidatePath(`/director/events/${eventIdEntry.trim()}`);
+    safeRevalidatePath(`/director/events/${eventIdEntry.trim()}`);
 
     return {
       status: "success",

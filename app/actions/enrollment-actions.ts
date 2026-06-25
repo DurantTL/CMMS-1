@@ -1,7 +1,8 @@
 "use server";
 
 import { Prisma, type MemberRole } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+
+import { safeRevalidatePath } from "../../lib/revalidate";
 
 import {
   findEventEnrollmentConflict,
@@ -29,6 +30,18 @@ type BulkEnrollAttendeesInput = {
   rosterMemberIds: string[];
   eventClassOfferingId: string;
   clubId?: string | null;
+};
+
+// Auth-free core for bulk enrollment. The club context is already resolved by
+// the caller (the wrapper below resolves it via getManagedClubContext). Keeping
+// the core free of auth()/headers() makes it directly unit/integration testable,
+// mirroring persistRegistrationForClub in event-registration-actions.ts.
+type BulkEnrollAttendeesForClubInput = {
+  eventId: string;
+  rosterMemberIds: string[];
+  eventClassOfferingId: string;
+  clubId: string;
+  actorUserId?: string | null;
 };
 
 type RequirementConfig = {
@@ -298,8 +311,8 @@ async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubI
     });
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
-  revalidatePath(`/admin/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 }
 
 export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
@@ -368,7 +381,7 @@ async function removeAttendeeFromClassForClub(input: EnrollAttendeeInput & { clu
     });
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
 }
 
 export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
@@ -394,7 +407,17 @@ export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
 
 export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput) {
   const managedClub = await getManagedClubContext(input.clubId ?? null);
-  const clubId = managedClub.clubId;
+  await bulkEnrollAttendeesForClub({
+    eventId: input.eventId,
+    eventClassOfferingId: input.eventClassOfferingId,
+    rosterMemberIds: input.rosterMemberIds,
+    clubId: managedClub.clubId,
+    actorUserId: managedClub.userId,
+  });
+}
+
+export async function bulkEnrollAttendeesForClub(input: BulkEnrollAttendeesForClubInput) {
+  const clubId = input.clubId;
   const rosterMemberIds = Array.from(new Set(input.rosterMemberIds.filter((id) => id.trim().length > 0)));
 
   if (rosterMemberIds.length === 0) {
@@ -570,11 +593,11 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
     }
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
-  revalidatePath(`/admin/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 
   await safeWriteAuditLog({
-    actorUserId: managedClub.userId,
+    actorUserId: input.actorUserId ?? null,
     action: "enrollment.bulk_add",
     targetType: "ClassEnrollment",
     targetId: input.eventClassOfferingId,
@@ -723,8 +746,8 @@ export async function bulkRemoveAttendeesFromClass(input: BulkEnrollAttendeesInp
     });
   });
 
-  revalidatePath(`/director/events/${input.eventId}/classes`);
-  revalidatePath(`/admin/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/director/events/${input.eventId}/classes`);
+  safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 
   await safeWriteAuditLog({
     actorUserId: managedClub.userId,
