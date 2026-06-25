@@ -32,6 +32,18 @@ type BulkEnrollAttendeesInput = {
   clubId?: string | null;
 };
 
+// Auth-free core for bulk enrollment. The club context is already resolved by
+// the caller (the wrapper below resolves it via getManagedClubContext). Keeping
+// the core free of auth()/headers() makes it directly unit/integration testable,
+// mirroring persistRegistrationForClub in event-registration-actions.ts.
+type BulkEnrollAttendeesForClubInput = {
+  eventId: string;
+  rosterMemberIds: string[];
+  eventClassOfferingId: string;
+  clubId: string;
+  actorUserId?: string | null;
+};
+
 type RequirementConfig = {
   minAge?: number;
   maxAge?: number;
@@ -395,7 +407,17 @@ export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
 
 export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput) {
   const managedClub = await getManagedClubContext(input.clubId ?? null);
-  const clubId = managedClub.clubId;
+  await bulkEnrollAttendeesForClub({
+    eventId: input.eventId,
+    eventClassOfferingId: input.eventClassOfferingId,
+    rosterMemberIds: input.rosterMemberIds,
+    clubId: managedClub.clubId,
+    actorUserId: managedClub.userId,
+  });
+}
+
+export async function bulkEnrollAttendeesForClub(input: BulkEnrollAttendeesForClubInput) {
+  const clubId = input.clubId;
   const rosterMemberIds = Array.from(new Set(input.rosterMemberIds.filter((id) => id.trim().length > 0)));
 
   if (rosterMemberIds.length === 0) {
@@ -575,7 +597,7 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
   safeRevalidatePath(`/admin/events/${input.eventId}/classes`);
 
   await safeWriteAuditLog({
-    actorUserId: managedClub.userId,
+    actorUserId: input.actorUserId ?? null,
     action: "enrollment.bulk_add",
     targetType: "ClassEnrollment",
     targetId: input.eventClassOfferingId,

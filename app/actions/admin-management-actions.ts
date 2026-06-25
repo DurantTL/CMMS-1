@@ -2,10 +2,10 @@
 
 import { ClubType, Prisma, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
 import { type AdminCreateFormState } from "./admin-management-state";
 import { auth } from "../../auth";
-import { safeRevalidatePath } from "../../lib/revalidate";
 import { safeWriteAuditLog } from "../../lib/audit-log";
 import { sendAccountCredentialEmail } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
@@ -116,7 +116,7 @@ export async function createClubAction(
       },
     });
 
-    safeRevalidatePath("/admin/clubs");
+    revalidatePath("/admin/clubs");
 
     return {
       status: "success",
@@ -177,7 +177,7 @@ export async function updateClubAction(
       },
     });
 
-    safeRevalidatePath("/admin/clubs");
+    revalidatePath("/admin/clubs");
 
     return {
       status: "success",
@@ -286,7 +286,7 @@ export async function createUserAction(
       }
     }
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
@@ -335,7 +335,7 @@ export async function updateUserProfileAction(
       },
     });
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
@@ -428,7 +428,7 @@ export async function assignUserMembershipAction(
       },
     });
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
@@ -500,7 +500,7 @@ export async function setPrimaryMembershipAction(
       summary: `Updated primary membership ${membershipId}.`,
     });
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
@@ -581,7 +581,7 @@ export async function removeUserMembershipAction(
       summary: `Removed membership ${membershipId}.`,
     });
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
@@ -663,7 +663,7 @@ export async function resetUserPasswordAction(
       }
     }
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
@@ -703,7 +703,7 @@ export async function assignStudentPortalLinkAction(
       },
     });
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
@@ -738,7 +738,7 @@ export async function removeStudentPortalLinkAction(
       summary: `Removed student portal link ${linkId}.`,
     });
 
-    safeRevalidatePath("/admin/users");
+    revalidatePath("/admin/users");
 
     return {
       status: "success",
