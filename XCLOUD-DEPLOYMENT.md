@@ -39,6 +39,12 @@ npx prisma migrate deploy && npm start
 
 ## 4) Configure environment variables in xCloud panel
 
+Secrets can be supplied **either way** — set them in the xCloud service env
+settings (recommended; nothing committed to the repo), **or** drop a `.env`
+file next to `docker-compose.yml` on the host. The compose `web` service forwards
+each value via `${VAR:-}` pass-through and also reads an optional, non-required
+`.env`, so both deployment styles work and a missing `.env` never blocks startup.
+
 In your xCloud app/service environment settings, set the following variables for the Node.js app:
 
 - `DATABASE_URL`
@@ -46,6 +52,7 @@ In your xCloud app/service environment settings, set the following variables for
 - `AUTH_SECRET`
 - `NEXTAUTH_URL`
 - `NEXT_PUBLIC_APP_URL`
+- `INTERNAL_APP_URL` (optional)
 - `MEDICAL_ENCRYPTION_KEY`
 
 ### Recommended values
@@ -62,7 +69,14 @@ In your xCloud app/service environment settings, set the following variables for
   - Your public app URL, for example:
   - `https://cmms.yourdomain.com`
 - `NEXT_PUBLIC_APP_URL`
-  - Usually the same value as `NEXTAUTH_URL`
+  - The **public** origin users and Square reach (usually the same value as
+    `NEXTAUTH_URL`). It signs Square webhooks and builds director email links, so
+    it must be the externally reachable host, e.g. `https://cmms.imsda.org`.
+- `INTERNAL_APP_URL` (optional)
+  - A separate internal/server-to-server origin (e.g. a private host like
+    `https://cmms.internal.imsda.org`). Kept distinct from `NEXT_PUBLIC_APP_URL`
+    so internal traffic never rewrites external-facing links. Leave unset unless
+    you need it.
 - `MEDICAL_ENCRYPTION_KEY`
   - Must be a 64-character hex string or a base64 string that decodes to 32 bytes
 

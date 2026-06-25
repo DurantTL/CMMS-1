@@ -25,22 +25,41 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Secrets may come from EITHER the platform/shell environment (e.g. the xCloud
+    # service env settings — see XCLOUD-DEPLOYMENT.md) OR an optional `.env` file
+    # next to this compose file. The `${VAR:-}` pass-through entries below forward
+    # platform/shell-injected values into the container; compose also auto-loads
+    # the project `.env` for ${VAR} interpolation, and the optional env_file picks
+    # up the same file. `.env` is NOT committed and NOT required, so panel-only
+    # hosts (no .env) still come up cleanly.
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgresql://cmms_app:cmms_app_test_2026@postgres:5432/cmms?schema=public
       POSTGRES_USER: cmms_app
       POSTGRES_PASSWORD: cmms_app_test_2026
       POSTGRES_DB: cmms
       NODE_ENV: production
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
-      NEXT_PUBLIC_APP_URL: https://cmms.imsda.org
+      # External-facing origin. Drives Square webhook signature verification
+      # (app/api/webhooks/square/route.ts) and director email links
+      # (lib/email/resend.ts), so it MUST match the host that users and Square
+      # actually reach. Defaults to the public origin; override via env/.env.
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://cmms.imsda.org}
+      # Internal server-to-server origin (private/VPN host), kept SEPARATE from the
+      # public URL above so internal traffic never rewrites external-facing links.
+      # Override via env/.env. Note: not consumed by app code yet — it's the seam
+      # for wiring internal-only calls when needed.
+      INTERNAL_APP_URL: ${INTERNAL_APP_URL:-https://cmms.internal.imsda.org}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-}
+      MEDICAL_ENCRYPTION_KEY: ${MEDICAL_ENCRYPTION_KEY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
       SEED_SUPER_ADMIN_EMAIL: ${SEED_SUPER_ADMIN_EMAIL:-superadmin@cmms.local}
       SEED_SUPER_ADMIN_PASSWORD: ${SEED_SUPER_ADMIN_PASSWORD:-ChangeMeNow123!}
       SEED_SUPER_ADMIN_NAME: ${SEED_SUPER_ADMIN_NAME:-CMMS Super Admin}
       AUTH_TRUST_HOST: "true"
-      RESEND_API_KEY: ${RESEND_API_KEY}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
-      MEDICAL_ENCRYPTION_KEY: ${MEDICAL_ENCRYPTION_KEY}
     ports:
       - "3000:3000"
     volumes:
