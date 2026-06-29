@@ -797,12 +797,35 @@
       "noRosterYearsDescription": "Create your first roster year for {year}, then start adding members.",
       "createRosterYear": "Create {year} Roster Year"
     },
+    "rosterBulkEntry": {
+      "title": "Bulk member entry",
+      "description": "Type members row by row, or paste a block of cells straight from a spreadsheet. Required: first name, last name, role, and date of birth (YYYY-MM-DD).",
+      "columns": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "role": "Role",
+        "dateOfBirth": "Date of birth",
+        "gender": "Gender",
+        "age": "Age",
+        "emergencyName": "Emergency contact",
+        "emergencyPhone": "Emergency phone"
+      },
+      "selectRole": "Select role",
+      "autoAge": "auto",
+      "addRow": "Add row",
+      "removeRow": "Remove row",
+      "readyCount": "{ready} of {total} row(s) ready to save",
+      "consentNote": "Members added here start without consents or background-check clearance — collect those later from each member's edit form. Duplicate names already on this roster (same name + date of birth) are skipped.",
+      "submit": "{count, plural, =0 {Save members} one {Save # member} other {Save # members}}",
+      "result": "{created} created, {skipped} duplicate(s) skipped"
+    },
     "rosterTable": {
       "title": "Roster Members",
       "description": "Manage the active members for the current roster year.",
       "addMember": "Add Member",
       "downloadTemplate": "Download CSV Template",
       "importCsv": "Import CSV",
+      "bulkEntry": "Bulk Entry",
       "csvImport": {
         "title": "Bulk Import from CSV",
         "description": "Upload a CSV file using the template format to import multiple members at once. Consent fields will be set to false and must be updated individually.",

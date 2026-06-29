@@ -16,6 +16,12 @@ export type ImportRosterResult = {
   errors: string[];
 };
 
+export type BulkCreateRosterResult = {
+  created: number;
+  skippedDuplicates: number;
+  errors: string[];
+};
+
 import { isRedirectError } from "../../lib/action-utils";
 import { auth } from "../../auth";
 import { safeWriteAuditLog } from "../../lib/audit-log";
@@ -23,6 +29,14 @@ import { getManagedClubContext } from "../../lib/club-management";
 import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { decryptMedicalFields, prepareMedicalFieldsForWrite } from "../../lib/medical-data";
 import { prisma } from "../../lib/prisma";
+import {
+  dropDuplicateMembers,
+  normalizeHeader,
+  normalizeRosterRows,
+  rosterMemberDedupKey,
+  type NormalizedRosterMember,
+  type RosterIntakeRow,
+} from "../../lib/roster-intake";
 
 export type SaveRosterMemberResult = { error: string | null };
 
@@ -46,6 +60,55 @@ function parseOptionalString(value: FormDataEntryValue | null) {
 
 async function getRosterManagementContext(clubIdOverride?: string | null) {
   return getManagedClubContext(clubIdOverride);
+}
+
+/** Map a validated intake member to a create payload, encrypting medical fields. */
+function buildRosterCreateInput(
+  member: NormalizedRosterMember,
+  rosterYearId: string,
+): Prisma.RosterMemberUncheckedCreateInput {
+  const medical = prepareMedicalFieldsForWrite({
+    medicalFlags: member.medicalFlags,
+    dietaryRestrictions: member.dietaryRestrictions,
+    insuranceCompany: null,
+    insurancePolicyNumber: null,
+    lastTetanusDate: null,
+  });
+
+  return {
+    clubRosterYearId: rosterYearId,
+    firstName: member.firstName,
+    lastName: member.lastName,
+    memberRole: member.memberRole,
+    dateOfBirth: member.dateOfBirth,
+    ageAtStart: member.ageAtStart,
+    gender: member.gender,
+    emergencyContactName: member.emergencyContactName,
+    emergencyContactPhone: member.emergencyContactPhone,
+    medicalFlags: medical.medicalFlags,
+    dietaryRestrictions: medical.dietaryRestrictions,
+    isFirstTime: member.isFirstTime,
+    isMedicalPersonnel: member.isMedicalPersonnel,
+    masterGuide: member.masterGuide,
+    // Bulk/CSV intake captures the skeleton only — consents and background-check
+    // clearance are collected later via the per-member edit form / compliance sync.
+    photoReleaseConsent: false,
+    medicalTreatmentConsent: false,
+    membershipAgreementConsent: false,
+    backgroundCheckCleared: false,
+    rolloverStatus: RolloverStatus.NEW,
+    isActive: true,
+  };
+}
+
+/** Dedup keys for the active members already in a roster year. */
+async function loadExistingMemberKeys(rosterYearId: string): Promise<Set<string>> {
+  const existing = await prisma.rosterMember.findMany({
+    where: { clubRosterYearId: rosterYearId, isActive: true },
+    select: { firstName: true, lastName: true, dateOfBirth: true },
+  });
+
+  return new Set(existing.map((m) => rosterMemberDedupKey(m.firstName, m.lastName, m.dateOfBirth)));
 }
 
 export async function saveRosterMember(
@@ -513,21 +576,25 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-function parseCSV(csvText: string): Array<Record<string, string>> {
+function parseCSV(csvText: string): RosterIntakeRow[] {
   const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
 
   if (lines.length === 0) {
     return [];
   }
 
-  const headers = parseCSVLine(lines[0]).map((h) => h.trim().replace(/^"|"$/g, ""));
+  // Map each column to a canonical field key (aliases + BOM handled in normalizeHeader).
+  const headerKeys = parseCSVLine(lines[0]).map((h) => normalizeHeader(h.replace(/^"|"$/g, "")));
 
   return lines.slice(1).map((line) => {
     const values = parseCSVLine(line);
-    const row: Record<string, string> = {};
+    const row: RosterIntakeRow = {};
 
-    headers.forEach((header, i) => {
-      row[header] = (values[i] ?? "").trim().replace(/^"|"$/g, "");
+    headerKeys.forEach((key, i) => {
+      if (!key) {
+        return;
+      }
+      row[key] = (values[i] ?? "").trim().replace(/^"|"$/g, "");
     });
 
     return row;
@@ -550,7 +617,7 @@ export async function importRosterMembers(
 
   const rosterYear = await prisma.clubRosterYear.findFirst({
     where: { id: rosterYearIdEntry, clubId },
-    select: { id: true },
+    select: { id: true, startsOn: true },
   });
 
   if (!rosterYear) {
@@ -564,7 +631,7 @@ export async function importRosterMembers(
   }
 
   const csvText = await csvFile.text();
-  let rows: Array<Record<string, string>>;
+  let rows: RosterIntakeRow[];
 
   try {
     rows = parseCSV(csvText);
@@ -580,96 +647,30 @@ export async function importRosterMembers(
     return { imported: 0, skipped: 0, errors: ["The CSV file contains no data rows."] };
   }
 
-  let skipped = 0;
-  const errors: string[] = [];
-  const membersToCreate: Prisma.RosterMemberUncheckedCreateInput[] = [];
+  // Row 1 is the header; data rows start at row 2.
+  const { members, errors, skipped: invalidSkipped } = normalizeRosterRows(rows, {
+    startsOn: rosterYear.startsOn,
+    rowOffset: 2,
+  });
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const rowNum = i + 2; // row 1 is header; data starts at row 2
+  const existingKeys = await loadExistingMemberKeys(rosterYear.id);
+  const { unique, skippedDuplicates } = dropDuplicateMembers(members, existingKeys);
 
-    const firstName = row["firstName"]?.trim() ?? "";
-    const lastName = row["lastName"]?.trim() ?? "";
-    const memberRoleRaw = row["memberRole"]?.trim() ?? "";
-    const dateOfBirthRaw = row["dateOfBirth"]?.trim() ?? "";
-
-    if (!firstName || !lastName || !memberRoleRaw || !dateOfBirthRaw) {
-      const missing = [
-        !firstName && "firstName",
-        !lastName && "lastName",
-        !memberRoleRaw && "memberRole",
-        !dateOfBirthRaw && "dateOfBirth",
-      ]
-        .filter(Boolean)
-        .join(", ");
-      errors.push(`Row ${rowNum}: missing required field(s): ${missing}.`);
-      skipped++;
-      continue;
-    }
-
-    if (!(memberRoleRaw in MemberRole)) {
-      errors.push(
-        `Row ${rowNum}: invalid memberRole "${memberRoleRaw}". Valid values: ${Object.values(MemberRole).join(", ")}.`,
-      );
-      skipped++;
-      continue;
-    }
-
-    const dateOfBirth = new Date(`${dateOfBirthRaw}T00:00:00.000Z`);
-
-    if (Number.isNaN(dateOfBirth.getTime())) {
-      errors.push(`Row ${rowNum}: invalid dateOfBirth "${dateOfBirthRaw}". Use YYYY-MM-DD format.`);
-      skipped++;
-      continue;
-    }
-
-    const genderRaw = row["gender"]?.trim() ?? "";
-    const genderValue = genderRaw.length > 0 && genderRaw in Gender ? (genderRaw as Gender) : null;
-
-    const ageAtStartRaw = row["ageAtStart"]?.trim() ?? "";
-    const ageAtStartParsed = ageAtStartRaw.length > 0 ? Number(ageAtStartRaw) : null;
-    const ageAtStart = ageAtStartParsed !== null && !Number.isNaN(ageAtStartParsed) ? ageAtStartParsed : null;
-
-    const medicalWriteFields = prepareMedicalFieldsForWrite({
-      medicalFlags: row["medicalFlags"]?.trim() || null,
-      dietaryRestrictions: row["dietaryRestrictions"]?.trim() || null,
-      insuranceCompany: null,
-      insurancePolicyNumber: null,
-      lastTetanusDate: null,
-    });
-
-    membersToCreate.push({
-      clubRosterYearId: rosterYear.id,
-      firstName,
-      lastName,
-      memberRole: memberRoleRaw as MemberRole,
-      dateOfBirth,
-      ageAtStart,
-      gender: genderValue,
-      emergencyContactName: row["emergencyContactName"]?.trim() || null,
-      emergencyContactPhone: row["emergencyContactPhone"]?.trim() || null,
-      medicalFlags: medicalWriteFields.medicalFlags,
-      dietaryRestrictions: medicalWriteFields.dietaryRestrictions,
-      isFirstTime: row["isFirstTime"]?.trim().toLowerCase() === "true",
-      isMedicalPersonnel: row["isMedicalPersonnel"]?.trim().toLowerCase() === "true",
-      masterGuide: row["masterGuide"]?.trim().toLowerCase() === "true",
-      photoReleaseConsent: false,
-      medicalTreatmentConsent: false,
-      membershipAgreementConsent: false,
-      backgroundCheckCleared: false,
-      rolloverStatus: RolloverStatus.NEW,
-      isActive: true,
-    });
+  if (skippedDuplicates > 0) {
+    errors.push(`${skippedDuplicates} duplicate member(s) already on this roster were skipped.`);
   }
 
   let imported = 0;
 
-  if (membersToCreate.length > 0) {
+  if (unique.length > 0) {
+    const membersToCreate = unique.map((member) => buildRosterCreateInput(member, rosterYear.id));
     await prisma.$transaction(async (tx) => {
       await tx.rosterMember.createMany({ data: membersToCreate });
     });
     imported = membersToCreate.length;
   }
+
+  const skipped = invalidSkipped + skippedDuplicates;
 
   await safeWriteAuditLog({
     actorUserId: managedClub.userId,
@@ -679,10 +680,89 @@ export async function importRosterMembers(
     clubId,
     clubRosterYearId: rosterYear.id,
     summary: `CSV import: ${imported} imported, ${skipped} skipped.`,
-    metadata: { imported, skipped, errorCount: errors.length },
+    metadata: { imported, skipped, skippedDuplicates, errorCount: errors.length },
   });
 
   revalidatePath("/director/roster");
 
   return { imported, skipped, errors };
+}
+
+export async function bulkCreateRosterMembers(
+  _prevState: BulkCreateRosterResult | null,
+  formData: FormData,
+): Promise<BulkCreateRosterResult> {
+  const clubIdOverride = readManagedClubId(formData.get("clubId"));
+  const managedClub = await getRosterManagementContext(clubIdOverride);
+  const clubId = managedClub.clubId;
+
+  const rosterYearIdEntry = formData.get("clubRosterYearId");
+
+  if (typeof rosterYearIdEntry !== "string" || rosterYearIdEntry.length === 0) {
+    return { created: 0, skippedDuplicates: 0, errors: ["A roster year is required."] };
+  }
+
+  const rosterYear = await prisma.clubRosterYear.findFirst({
+    where: { id: rosterYearIdEntry, clubId },
+    select: { id: true, startsOn: true },
+  });
+
+  if (!rosterYear) {
+    return { created: 0, skippedDuplicates: 0, errors: ["Roster year not found for this club."] };
+  }
+
+  const rowsEntry = formData.get("rows");
+
+  if (typeof rowsEntry !== "string" || rowsEntry.trim().length === 0) {
+    return { created: 0, skippedDuplicates: 0, errors: ["Add at least one member row before saving."] };
+  }
+
+  let rawRows: RosterIntakeRow[];
+
+  try {
+    const parsed = JSON.parse(rowsEntry);
+    if (!Array.isArray(parsed)) {
+      throw new Error("not an array");
+    }
+    rawRows = parsed as RosterIntakeRow[];
+  } catch {
+    return { created: 0, skippedDuplicates: 0, errors: ["Could not read the submitted rows."] };
+  }
+
+  if (rawRows.length === 0) {
+    return { created: 0, skippedDuplicates: 0, errors: ["Add at least one member row before saving."] };
+  }
+
+  const { members, errors, skipped: invalidSkipped } = normalizeRosterRows(rawRows, {
+    startsOn: rosterYear.startsOn,
+    rowOffset: 1,
+  });
+
+  const existingKeys = await loadExistingMemberKeys(rosterYear.id);
+  const { unique, skippedDuplicates } = dropDuplicateMembers(members, existingKeys);
+
+  let created = 0;
+
+  if (unique.length > 0) {
+    const membersToCreate = unique.map((member) => buildRosterCreateInput(member, rosterYear.id));
+    await prisma.$transaction(async (tx) => {
+      await tx.rosterMember.createMany({ data: membersToCreate });
+    });
+    created = membersToCreate.length;
+  }
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "roster_member.bulk_create",
+    targetType: "ClubRosterYear",
+    targetId: rosterYear.id,
+    clubId,
+    clubRosterYearId: rosterYear.id,
+    summary: `Bulk roster entry: ${created} created, ${invalidSkipped + skippedDuplicates} skipped.`,
+    metadata: { created, invalidSkipped, skippedDuplicates, errorCount: errors.length },
+  });
+
+  revalidatePath("/director/roster");
+
+  return { created, skippedDuplicates, errors };
 }

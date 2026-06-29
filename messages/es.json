@@ -782,12 +782,35 @@
       "noRosterYearsDescription": "Cree su primer año de nómina para {year} y luego comience a agregar miembros.",
       "createRosterYear": "Crear año de nómina {year}"
     },
+    "rosterBulkEntry": {
+      "title": "Entrada masiva de miembros",
+      "description": "Escriba miembros fila por fila, o pegue un bloque de celdas directamente desde una hoja de cálculo. Obligatorio: nombre, apellido, rol y fecha de nacimiento (AAAA-MM-DD).",
+      "columns": {
+        "firstName": "Nombre",
+        "lastName": "Apellido",
+        "role": "Rol",
+        "dateOfBirth": "Fecha de nacimiento",
+        "gender": "Género",
+        "age": "Edad",
+        "emergencyName": "Contacto de emergencia",
+        "emergencyPhone": "Teléfono de emergencia"
+      },
+      "selectRole": "Seleccione rol",
+      "autoAge": "auto",
+      "addRow": "Agregar fila",
+      "removeRow": "Quitar fila",
+      "readyCount": "{ready} de {total} fila(s) listas para guardar",
+      "consentNote": "Los miembros agregados aquí comienzan sin consentimientos ni verificación de antecedentes; recójalos después desde el formulario de edición de cada miembro. Se omiten los nombres duplicados que ya están en esta nómina (mismo nombre + fecha de nacimiento).",
+      "submit": "{count, plural, =0 {Guardar miembros} one {Guardar # miembro} other {Guardar # miembros}}",
+      "result": "{created} creados, {skipped} duplicado(s) omitidos"
+    },
     "rosterTable": {
       "title": "Miembros de la nómina",
       "description": "Administre los miembros activos del año de nómina actual.",
       "addMember": "Agregar miembro",
       "downloadTemplate": "Descargar plantilla CSV",
       "importCsv": "Importar CSV",
+      "bulkEntry": "Entrada masiva",
       "csvImport": {
         "title": "Importación masiva desde CSV",
         "description": "Sube un archivo CSV con el formato de la plantilla para importar varios miembros a la vez. Los campos de consentimiento se establecerán en falso y deben actualizarse individualmente.",

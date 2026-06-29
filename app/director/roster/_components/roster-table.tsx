@@ -6,6 +6,7 @@ import { useFormState } from "react-dom";
 import { useTranslations } from "next-intl";
 
 import { saveRosterMember, importRosterMembers, type ImportRosterResult, type SaveRosterMemberResult } from "../../../actions/roster-actions";
+import { RosterBulkEntry } from "./roster-bulk-entry";
 
 // ---------------------------------------------------------------------------
 // CSV template column headers (order matters — matches the import parser)
@@ -124,6 +125,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
   const t = useTranslations("Director");
   const [modalState, setModalState] = useState<ModalState | null>(null);
   const [showImportForm, setShowImportForm] = useState(false);
+  const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [importResult, importAction] = useFormState<ImportRosterResult | null, FormData>(importRosterMembers, null);
   const [saveResult, saveAction] = useFormState<SaveRosterMemberResult | null, FormData>(saveRosterMember, null);
 
@@ -164,6 +166,13 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
           </button>
           <button
             type="button"
+            onClick={() => setShowBulkEntry((v) => !v)}
+            className="btn-secondary"
+          >
+            {t("rosterTable.bulkEntry")}
+          </button>
+          <button
+            type="button"
             onClick={() => setModalState({ mode: "create", member: null })}
             className="btn-primary"
           >
@@ -171,6 +180,10 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
           </button>
         </div>
       </div>
+
+      {showBulkEntry ? (
+        <RosterBulkEntry rosterYearId={rosterYearId} managedClubId={managedClubId} />
+      ) : null}
 
       {showImportForm ? (
         <div className="glass-panel space-y-3">
