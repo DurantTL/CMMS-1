@@ -114,6 +114,33 @@ function optionalString(value: string | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/**
+ * Parse a strict `YYYY-MM-DD` string as UTC midnight, rejecting impossible dates.
+ * `new Date("2012-02-31...")` silently rolls over to March, so we round-trip the
+ * components and return null if they don't match what was submitted.
+ */
+export function parseStrictUtcDate(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
 /** Age (in whole years) a member has reached on the roster year's start date. */
 export function deriveAgeAtStart(dateOfBirth: Date, startsOn: Date): number {
   let age = startsOn.getUTCFullYear() - dateOfBirth.getUTCFullYear();
@@ -176,8 +203,8 @@ export function normalizeRosterRows(
       return;
     }
 
-    const dateOfBirth = new Date(`${dateOfBirthRaw}T00:00:00.000Z`);
-    if (Number.isNaN(dateOfBirth.getTime())) {
+    const dateOfBirth = parseStrictUtcDate(dateOfBirthRaw);
+    if (!dateOfBirth) {
       errors.push(`Row ${rowNum}: invalid dateOfBirth "${dateOfBirthRaw}". Use YYYY-MM-DD format.`);
       skipped += 1;
       return;

@@ -7,6 +7,7 @@ import {
   dropDuplicateMembers,
   normalizeHeader,
   normalizeRosterRows,
+  parseStrictUtcDate,
   rosterMemberDedupKey,
   type NormalizedRosterMember,
 } from "../lib/roster-intake";
@@ -21,6 +22,18 @@ test("normalizeHeader maps aliases and strips BOM, returns null for unknown", ()
   assert.equal(normalizeHeader("﻿firstName"), "firstName"); // leading UTF-8 BOM
   assert.equal(normalizeHeader("Role"), "memberRole");
   assert.equal(normalizeHeader("nonsense column"), null);
+});
+
+test("parseStrictUtcDate accepts real dates and rejects impossible/malformed ones", () => {
+  assert.equal(
+    parseStrictUtcDate("2012-05-14")?.toISOString(),
+    "2012-05-14T00:00:00.000Z",
+  );
+  assert.equal(parseStrictUtcDate("2012-02-31"), null); // would roll over to March
+  assert.equal(parseStrictUtcDate("2013-02-29"), null); // non-leap year
+  assert.equal(parseStrictUtcDate("2012-13-01"), null); // bad month
+  assert.equal(parseStrictUtcDate("not-a-date"), null);
+  assert.equal(parseStrictUtcDate("2012-5-14"), null); // not zero-padded
 });
 
 test("deriveAgeAtStart counts whole years reached on the year's start date", () => {
@@ -39,16 +52,19 @@ test("normalizeRosterRows validates required fields and reports per-row errors",
       { firstName: "", lastName: "NoFirst", memberRole: "PATHFINDER", dateOfBirth: "2012-05-14" },
       { firstName: "Bad", lastName: "Role", memberRole: "WIZARD", dateOfBirth: "2012-05-14" },
       { firstName: "Bad", lastName: "Date", memberRole: "PATHFINDER", dateOfBirth: "not-a-date" },
+      // Syntactically valid but impossible — must NOT silently roll over to March.
+      { firstName: "Imp", lastName: "Ossible", memberRole: "PATHFINDER", dateOfBirth: "2012-02-31" },
     ],
     { startsOn, rowOffset: 1 },
   );
 
   assert.equal(result.members.length, 1);
-  assert.equal(result.skipped, 3);
-  assert.equal(result.errors.length, 3);
+  assert.equal(result.skipped, 4);
+  assert.equal(result.errors.length, 4);
   assert.match(result.errors[0], /Row 2: missing required field\(s\): firstName/);
   assert.match(result.errors[1], /Row 3: invalid memberRole "WIZARD"/);
   assert.match(result.errors[2], /Row 4: invalid dateOfBirth "not-a-date"/);
+  assert.match(result.errors[3], /Row 5: invalid dateOfBirth "2012-02-31"/);
 });
 
 test("normalizeRosterRows derives age when blank and normalizes enum casing", () => {
